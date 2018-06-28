@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+    <head>
+
+		<title>PokeClimb</title>
+
+        <!-- The viewport is a short tag that is included in the head of your HTML document that tells the browser how the page should be rendered -->
+        <meta name = "viewport" content = "width = device-width, initial-scale = 1.0, maximum-scale = 1.0, minimum-scale = 1.0, user-scalable = 0, minimal-ui" />
+
+        <!-- a 256x256 icon should go here, this is your favicon -->
+        <link rel = "shortcut icon" sizes = "256x256" href = "icon-256.png" />
+
+        <!-- style sheet of your game page -->
+        <style type = "text/css">
+
+            /* resetting all margin and paddings */
+            * {
+                padding: 0;
+                margin: 0;
+            }
+
+            /* setting body background color */
+            body{
+                background: #1c2331;
+            }
+
+            /* removing any touch delay on canvas (some old browsers applied about 300ms delay) */
+            canvas {
+                touch-action-delay: none;
+                touch-action: none;
+                -ms-touch-action: none;
+            }
+
+            /* the style of the div containing the "wrong orientation" message */
+            #wrongorientation{
+                background: url("images/wrongorientation.png") no-repeat center center fixed;
+                background-size: contain;
+                position: fixed;
+                width: 100%;
+                height: 100%;
+                top: 0px;
+                left: 0px;
+                z-index: 1000;
+                display: none;
+            }
+        </style>
+
+        <!-- Phaser -->
+        <script src = "phaser.min.js"></script>
+
+        <!-- the game itslef -->
+        <script src = "game.js"></script>
+    </head>
+    <body>
+
+        <!-- the div containing the "wrong orientation" message -->
+        <div id = "wrongorientation"></div>
+    </body>
+</html>
