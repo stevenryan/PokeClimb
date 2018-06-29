@@ -156,7 +156,7 @@ preloadGame.prototype = {
         game.load.spritesheet("hero", gameOptions.spritesPath + "player.png", 26, 48);
         game.load.spritesheet("coin", gameOptions.spritesPath + "coin.png", 48, 48);
         game.load.spritesheet("fire", gameOptions.spritesPath + "rapidash.png", 32, 58);
-        game.load.spritesheet("bulbasaur", gameOptions.spritesPath + "bulbasaur.png", 40, 40);
+        game.load.spritesheet("bulbasaur", gameOptions.spritesPath + "bulbasaur-idle.png", 40, 40);
         game.load.spritesheet("spike", gameOptions.spritesPath + "grimer.png", 39, 20);
         game.load.spritesheet("monster", gameOptions.spritesPath + "dugtrio-monster.png", 40, 40);
         game.load.spritesheet("spikedmonster", gameOptions.spritesPath + "rhydon-monster.png", 40, 50);
