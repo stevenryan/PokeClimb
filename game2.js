@@ -20,7 +20,7 @@ var gameOptions = {
     playerJump: 1800,
 
     // speed of arrows, in pixels per second
-    arrowSpeed: 1000,
+    arrowSpeed: 800,
 
     // Value used in the addCoin method
     // Makes the chance of a coin spawning on a floor 2/3
@@ -141,7 +141,7 @@ preloadGame.prototype = {
         game.load.image("ladder", gameOptions.spritesPath + "vine.png");
         game.load.image("coinparticle", gameOptions.spritesPath + "coinparticle.png");
         game.load.image("cloud", gameOptions.spritesPath + "cloud.png");
-        game.load.image("arrow", gameOptions.spritesPath + "arrow.png");
+        // game.load.image("arrow", gameOptions.spritesPath + "arrow.png");
         game.load.image("tap", gameOptions.spritesPath + "pikachu.gif");
         game.load.image('mountains-back', gameOptions.spritesPath + 'mountains-back.png');
         game.load.image('mountains-mid1', gameOptions.spritesPath + 'mountains-mid1.png');
@@ -160,6 +160,8 @@ preloadGame.prototype = {
         game.load.spritesheet("spike", gameOptions.spritesPath + "grimer.png", 39, 20);
         game.load.spritesheet("monster", gameOptions.spritesPath + "dugtrio-monster.png", 40, 40);
         game.load.spritesheet("spikedmonster", gameOptions.spritesPath + "rhydon-monster.png", 40, 50);
+        game.load.spritesheet("arrow", gameOptions.spritesPath + "shell-arrow.png", 60, 25);
+        game.load.spritesheet("wartortle", gameOptions.spritesPath + "wartortle.png", 38, 40);
 
         // You can create your bitmap fonts with the free online tool Littera - http://kvazars.com/littera/  */
         game.load.bitmapFont("font", gameOptions.fontsPath + "font.png", gameOptions.fontsPath + "font.fnt");
@@ -252,6 +254,7 @@ playGame.prototype = {
         this.floorPool = [];
         this.ladderPool = [];
         this.bulbasaurPool = [];
+        this.wartortlePool = [];
         this.coinPool = [];
         this.spikePool = [];
         this.firePool = [];
@@ -294,7 +297,9 @@ playGame.prototype = {
 
         // group which will contain all arrows
         this.arrowGroup = game.add.group();
+        this.wartortleGroup = game.add.group();
         this.gameGroup.add(this.arrowGroup);
+        this.gameGroup.add(this.wartortleGroup);
 
         // groups for overlay and menu
         this.overlayGroup = game.add.group();
@@ -451,6 +456,10 @@ playGame.prototype = {
 
                                 case "arrow":
                                     this.killArrow(subItem);
+                                    break;
+
+                                case "wartortle":
+                                    this.killWartortle(subItem);
                                     break;
 
                                 case "monster":
@@ -658,13 +667,16 @@ playGame.prototype = {
         var arrowX = game.rnd.integerInRange(0, 1);
 
         // arrowY is the vertical position where to place the arrow
-        var arrowY = this.highestFloorY - 20;
+        var arrowY = this.highestFloorY;
 
         // first, we see if we already have an arrow sprite in the pool
-        if(this.arrowPool.length > 0){
+        if(this.arrowPool.length > 0 && this.wartortlePool.length > 0){
 
             // if we find an arrow in the pool, let's remove it from the pool
             var arrow = this.arrowPool.pop();
+            var wartortle = this.wartortlePool.pop();
+            wartortle.x = arrowX;
+            wartortle.y = this.highestFloorY
             // Reset the shell's velocity when recycled from the pool
             // Otherwise each arrow instance would interfere with each other
             arrow.reset(game.width * arrowX, arrowY);
@@ -675,35 +687,46 @@ playGame.prototype = {
             /*  this line will just flip the arrow horizontally if it's on the right side of the game.
                 you can flip horizontally a sprite by setting its x scale to -1  */
             arrow.scale.x = 1 - 2 * arrowX;
+            wartortle.scale.x = 1 - 2 * arrowX;
 
             // make the arrow revive, setting its "alive", "exists" and "visible" properties all set to true
             arrow.revive();
+            wartortle.revive();
         }
 
         // this is the case we did not find any arrow in the pool
         else{
 
-            // adding the ladder sprite
+            // Add the arrow sprite
             var arrow = game.add.sprite(game.width * arrowX, arrowY, "arrow");
+            var wartortle = game.add.sprite(game.width * arrowX, arrowY, "wartortle");
+            var arrowSpin = arrow.animations.add("spin");
+            var wartortleIdle = wartortle.animations.add("idle");
+            wartortle.animations.play("idle", 4, true);
+            arrow.animations.play("spin", 3, true);
 
             // custom property to tell us if the arrow is firing, initially set to false
             arrow.isFiring = false;
 
             // setting arrow registration point to center both horizontally and vertically
-            arrow.anchor.set(0.5);
+            arrow.anchor.set(0.75, 1);
+            wartortle.anchor.set(0.5, 1);
 
             /*  this line will just flip the arrow horizontally if it's on the right side of the game.
                 you can flip horizontally a sprite by setting its x scale to -1  */
             arrow.scale.x = 1 - 2 * arrowX;
+            wartortle.scale.x = 1 - 2 * arrowX;
 
             // enabling ARCADE physics to the arrow
             game.physics.enable(arrow, Phaser.Physics.ARCADE);
+            game.physics.enable(wartortle, Phaser.Physics.ARCADE);
 
             // setting arrow's body as immovable
             arrow.body.immovable = true;
 
             // adding arrow to arrow group
             this.arrowGroup.add(arrow);
+            this.wartortleGroup.add(wartortle);
         }
     },
 
@@ -1651,6 +1674,11 @@ playGame.prototype = {
 
         // inserting arrow sprite into arrow pool by adding it into arrowPool array
         this.arrowPool.push(arrow);
+    },
+
+    killWartortle: function(wartortle){
+        wartortle.kill();
+        this.wartortlePool.push(wartortle)
     },
 
     // method to remove a monster
