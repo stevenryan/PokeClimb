@@ -414,34 +414,22 @@ playGame.prototype = {
                 // Check if the children groups have children (subItems)
                 if(item.length > 0){
 
-                    // we loop through all the children of the child. Now "subItem" is the child of the child
+                    // Loop through all subItems
                     item.forEach(function(subItem) {
 
-                        /*  we update its y position adding "floorGap" to it.
-                            let's make a small recap:
-                            * during the tween we moved gameGroup down by floorGap pixels
-                            * at the end of the tween we moved gameGroup back to its default y position (zero), that is up by floorGap pixels
-                            * finally we move down each gameGroup child by floorGap pixels
-                            the final result is we have all gameGroups children in the same position as if gameGroup would have moved,
-                            but with gameGroup at its starting position.
-                            This fakes the infinite scrolling effect  */
+                        // Update y position by adding floorGap
                         subItem.y += gameOptions.floorGap;
 
-                        /*  now we check if the item y coordinate is greater than the game height, that is it left the screen to the bottom
-                            and we have to remove it  */
+                        // If y position is greater than the game.height, remove the subItem
                         if(subItem.y > game.height){
 
-                            /*  different things to do according to item key (the key we gave to the image at preload time)
-                                each of the methods you'll see here will remove in some way - we'll see how - the item  */
                             switch(subItem.key){
+                              // Different cases for different keys
                                 case "floor":
-
-                                    // removing the floor
                                     this.killFloor(subItem);
                                     break;
-                                case "ladder":
 
-                                    // removing the ladder
+                                case "ladder":
                                     this.killLadder(subItem);
                                     break;
 
@@ -450,33 +438,26 @@ playGame.prototype = {
                                     break;
 
                                 case "coin":
-
-                                    // removing the coin
                                     this.killCoin(subItem);
                                     break;
-                                case "spike":
 
-                                    // removing the spike
+                                case "spike":
                                     this.killSpike(subItem);
                                     break;
-                                case "fire":
 
-                                    // removing the fire
+                                case "fire":
                                     this.killFire(subItem);
                                     break;
-                                case "arrow":
 
-                                    // removing the arrow
+                                case "arrow":
                                     this.killArrow(subItem);
                                     break;
-                                case "monster":
 
-                                    // removing the monster
+                                case "monster":
                                     this.killMonster(subItem);
                                     break;
-                                case "spikedmonster":
 
-                                    // removing the spiked monster
+                                case "spikedmonster":
                                     this.killSpikedMonster(subItem);
                                     break;
                             }
@@ -485,140 +466,103 @@ playGame.prototype = {
                 }
                 else{
 
-                    // if the item has length equal to zero, that is has not children, move it down by "floorGap"
+                    // If the item length is zero, it has no children. Move it down by floorGap
                     item.y += gameOptions.floorGap;
                 }
             }, this);
 
-            // this method will populate the floor with enemies
+            // Populate the floor with enemies
             this.populateFloor(true);
 
-            // if we have more tweens to go...
+            // Check if there are more tweens to do
             if(this.tweensToGo > 0){
-
-                // decrease tweens to go...
+                // Decrease tweens
                 this.tweensToGo --;
-
-                // ...and start the tween
+                // And start tween
                 this.scrollTween.start();
             }
         }, this);
     },
 
-    // method to draw the level, that is the entire game with all floors
+    // Draw the level, the entire game with all floors
     drawLevel: function(){
 
-        // creation of a local variable which keep tracks of current floor
+        // Local variable which keep tracks of current floor
         var currentFloor = 0;
 
-        /*  we are keeping track of the vertical coordinate of highest floor placed so far.
-            since we just started to place floors, the first floor is placed at floorStart  */
+        // Keep track of the coordinate of the highest floor reached
         this.highestFloorY = game.height * gameOptions.floorStart;
 
-        /*  this loop will keep on placing floors above the starting floor.
-            each floor will be placed floorGap pixels above the previous
-            floor until we reach - 2 * gameOptions.floorGap height, that is we placed
-            two floors higher than the very top of the canvas  */
-
+        // Loop keeps adding floors above the starting floor
+        // Stops when you have two floors above the top world bound of the canvas
         while(this.highestFloorY > - 2 * gameOptions.floorGap){
 
-                /*  populateFloor method will populate the floor with coins, ladders and enemies.
-                    it features a Boolean argument which is true if currentFloor is bigger than zero (it's not the first floor),
-                    false otherwise  */
+                // If the floor isn't the starting floor(0), it will be populated with other assets
                 this.populateFloor(currentFloor > 0);
 
-                // at this time we added a floor, so it's time to update highestFloorY value
+                // When a floor is added, update highestFloorY value
                 this.highestFloorY -= gameOptions.floorGap;
 
-                // increasing currentFloor counter
+                // Increasing currentFloor counter
                 currentFloor ++;
         }
-
-        /*  we have to add floorGap to highestFloorY because a few lines before
-            we updated the value of highestFloorY because we were going to add another floor,
-            but once the condition of the while loop is not satisfied anymore, we
-            find ourselves with an highestFloorY value which does not reflect aymore the
-            actual position of the highest floor, and that's why we update it now  */
+        // Add floorGap to highestFloorY to make it reflect the new floor's position
         this.highestFloorY += gameOptions.floorGap;
 
-        // this method will add the hero to the game
+        // Add the player to the game
         this.addHero();
     },
 
-    // method to populate a floor, with a Boolean argument telling us if we also have to add stuff
+    // Populate a floor, with a Boolean argument telling us if we also have to add stuff
     populateFloor: function(addStuff){
-
-        // first, we call addFloor method which will add the floor itself
+        // Add the platform itself
         this.addFloor();
 
-        /*  this is where addStuff comes into play.
-            at the moment we only added the floor, do we have to add other stuff?
-            if addStuff is true, that means the floor we are currently processing
-            is not the first floor, then
-            proceed adding more stuff to the floor  */
+        // If true, then you're no longer on the starting floor. Add things!!
         if(addStuff){
 
-            /*  when you randomly add stuff and enemies to a game, one of the biggest problems
-                you will face is your level could be too hard or even impossible to play.
-                this is why I am using a safeZone array to define safe zones in which cannot be
-                placed enemies, like ladder surroundings.
-                this is the best way to create an empty array or reset an existing array to an empty one  */
+            // Define safeZones in which you can randomly place enemies and not make the game impossible
             this.safeZone = [];
             this.safeZone.length = 0;
 
-            /*  addLadder method will add a ladder. Ladder should always be the first thing
-                to be added to each floor in order to keep the level easily playable  */
+            // Add a ladder. Ladder should always be the first thing to be added to a floor
             this.addLadder();
 
-            /*  this method will add a coin.
-                there is an optional argument which can be null (coin will be randomly placed)
-                or a Point (coin will be placed at a given coordinate).
-                in this case we want the coin to be randomly placed  */
+            // Add a coin, optional argument
+            // can be a given coordinate, or null, which means randomly placed
             this.addCoin(null);
 
-            /*  each floor can have 1 or 2 deadly items, I found it to be a good compromise
-                between randomness and gameplay but you are feel to populate the floors in
-                any other way.
-                integerInRange method returns a random integer between the to arguments, both included  */
+            // Each floor can have 1 or 2 deadly items
             var deadlyItems = game.rnd.integerInRange(1, 2)
 
-            // loop executed deadlyItems times
+            // Loop to select from deadlyItems times
             for(var i = 0; i < deadlyItems; i++){
-
-                /*  randomly selecting the deadly stuff to add, again you are free to populate floors
-                    in any other way, use as reference:
-                    * 0: spike
-                    * 1: fire
-                    * 2: arrow
-                    * 3: monster which can be killed and transformed into a coin
-                    * 4: monster which cannot be killed  */
+                // 0: grimer(spike)
+                // 1: fire(rapidash)
+                // 2: arrow(wartortle shell)
+                // 3: monster(dugtrio)
+                // 4: spikedMonster(rhydon)
                 var stuffToAdd = game.rnd.integerInRange(0, 4);
-
-                // which deadly item are we going to add?
+                // Randomly get a number from 0 - 4, inclusive
                 switch(stuffToAdd){
-                    case 0:
 
-                        // addSpike method  will add a spike
+                    case 0:
                         this.addSpike();
                         break;
-                    case 1:
 
-                        // addFire method will add the fire
+                    case 1:
                         this.addFire();
                         break;
-                    case 2:
 
-                        // addArrow method will add an arrow
+                    case 2:
                         this.addArrow();
                         break;
-                    case 3:
 
-                        // addMonster method will add a killable monster
+                    case 3:
                         this.addMonster();
                         break;
-                    case 4:
 
-                        // addSpikedMonster method will add a monster which can't be killed
+                    case 4:
                         this.addSpikedMonster();
                         break;
                 }
@@ -626,103 +570,79 @@ playGame.prototype = {
         }
     },
 
-    // method to add a floor
+    // Add a floor
     addFloor: function(){
 
-        // first, we see if we already have a floor sprite in the pool
+        // First, check if there's a floor sprite in the pool
         if(this.floorPool.length > 0){
-
-            // if we find a floor in the pool, let's remove it from the pool
+            // If there is, remove it
             var floor = this.floorPool.pop();
-
-            // placing the floor at the vertical highest floor position allowed in the game
+            // Place the floor at the vertical highest floor position allowed
             floor.y = this.highestFloorY;
-
-            // make the floor revive, setting its "alive", "exists" and "visible" properties all set to true
+            // Revive sets its "alive", "exists" and "visible" properties all set to true
             floor.revive();
         }
 
-        // this is the case we did not find any floor in the pool
+        // If the pool is empty, add a sprite
         else{
-
-            // adding the floor sprite
+            // Add the floor sprite
             var floor = game.add.sprite(0, this.highestFloorY, "floor");
-
-            // adding floor sprite to floor group
+            // Add floor sprite to floor group
             this.floorGroup.add(floor);
-
             // enabling ARCADE physics to the floor
             game.physics.enable(floor, Phaser.Physics.ARCADE);
-
-            /*  setting floor body to immovable.
-                an immovable Body will not receive any impacts from other bodies  */
+            // Setting the body to be immovable makes it unaffected by other forces
             floor.body.immovable = true;
-
-            /*  setting the checkCollision properties to control which directions collision is processed for the floor.
-                in this case collision on the bottom side is not processed, turning the body into a "cloud".
-                you can pass it from bottom to top but it won't let you fall when you walk over it  */
+            // Setting the down collision false, allows the player to climb through the bottom
+            // But not fall through the top
             floor.body.checkCollision.down = false;
         }
     },
 
-    // method to add a ladder
+    // Add a ladder
     addLadder: function(){
-
-        // ladderXPosition is the random horizontal placement of the ladder, with a 50 pixels margin from game borders
+        // Random horizontal placement of the ladder, with a 50 pixels margin from game borders
         var ladderXPosition = game.rnd.integerInRange(50, game.width - 50);
-
-        // first, we see if we already have a ladder sprite in the pool
+        // Check for a ladder sprite in the pool
         if(this.ladderPool.length > 0){
-
-            // if we find a floor in the pool, let's remove it from the pool
+            // Remove it from the pool and a bulbasaur sprite because it's using vine whip
             var ladder = this.ladderPool.pop();
             var bulbasaur = this.bulbasaurPool.pop();
-
-            // placing the ladder at horizontal ladderXPosition
+            // place them at horizontal ladderXPosition
             ladder.x = ladderXPosition;
             bulbasaur.x = ladderXPosition;
-
-            // placing the ladder at the vertical highest floor position allowed in the game
+            // place the ladder at the vertical highest floor position allowed in the game
             ladder.y = this.highestFloorY;
             bulbasaur.y = this.highestFloorY;
-
-            // make the ladder revive, setting its "alive", "exists" and "visible" properties all set to true
+            // Revive sets its "alive", "exists" and "visible" properties all set to true
             ladder.revive();
             bulbasaur.revive();
         }
 
-        // this is the case we did not find any ladder in the pool
+        // If pool is empty
         else{
-
-            // adding the ladder sprite
+            // Add vine and bulbasaur sprites to the pool
             var ladder = game.add.sprite(ladderXPosition, this.highestFloorY, "ladder");
             var bulbasaur = game.add.sprite(ladderXPosition, this.highestFloorY, "bulbasaur");
             var bulbasaurIdle = bulbasaur.animations.add("idle");
-
+            // Bulbasaur's idle animation and registration point is middle bottom
             bulbasaur.animations.play("idle", 2, true);
             bulbasaur.anchor.set(0.5, 1);
-
-            // adding ladder to ladder group
+            // Add them to their respective groups
             this.ladderGroup.add(ladder);
             this.bulbasaurGroup.add(bulbasaur);
 
-            // changing ladder registration point to horizontal:center and vertical:top
+            // Ladder's registration point is middle top
             ladder.anchor.set(0.5, 0);
-
             // enabling ARCADE physics to the floor
             game.physics.enable(ladder, Phaser.Physics.ARCADE);
             game.physics.enable(bulbasaur, Phaser.Physics.ARCADE);
-
-            // setting ladder's body as immovable
+            // setting ladder's and bulbasaur's body as immovable
             ladder.body.immovable = true;
             bulbasaur.body.immovable = true;
         }
 
-        /*  placing a ladder also means we have to prevent obstacles to be placed too close to it,
-            or the player sprite could climb a ladder just to find itself over a spike, with no
-            change to avoid it.
-            this is where safeZone array comes into play, let's add an object which defines
-            where to start and where to end  */
+        // Prevent spikes from spawning too close to the top of ladders
         this.safeZone .push({
             start: ladderXPosition - gameOptions.safeRadius,
             end: ladderXPosition + gameOptions.safeRadius
@@ -745,12 +665,8 @@ playGame.prototype = {
 
             // if we find an arrow in the pool, let's remove it from the pool
             var arrow = this.arrowPool.pop();
-
-            /*  if you recycled an arrow from the pool, probably it has been fired.
-                this means it has a velocity.
-                the best way to prevent old velocity values to interfere with new placement
-                is to call reset method which resets all body values (velocity, acceleration, rotation, etc)
-                and places it into its new position  */
+            // Reset the shell's velocity when recycled from the pool
+            // Otherwise each arrow instance would interfere with each other
             arrow.reset(game.width * arrowX, arrowY);
 
             // custom property to tell us if the arrow is firing, initially set to false
