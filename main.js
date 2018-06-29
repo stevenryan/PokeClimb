@@ -506,7 +506,7 @@ playGame.prototype = {
         // Stops when you have two floors above the top world bound of the canvas
         while(this.highestFloorY > - 2 * gameOptions.floorGap){
 
-                // If the floor isn't the starting floor(0), it will be populated with other assets
+                // If the floor isn't the starting floor (0), it will be populated with other assets
                 this.populateFloor(currentFloor > 0);
 
                 // When a floor is added, update highestFloorY value
@@ -658,21 +658,16 @@ playGame.prototype = {
         });
     },
 
-    // method to add an arrow
+    // method to add an arrow (shell)
     addArrow: function(){
-
-        /*  arrowX can take two values:
-            * 0 if the arrow will be placed on the left side
-            * 1 is the arrow will be placed on the right side  */
+        // arrowX can have two values, 0: the shell instance is on the left, 1: it is on the right
         var arrowX = game.rnd.integerInRange(0, 1);
-
         // arrowY is the vertical position where to place the arrow
         var arrowY = this.highestFloorY;
 
-        // first, we see if we already have an arrow sprite in the pool
+        // Check pools for arrow and wartortle sprites
         if(this.arrowPool.length > 0 && this.wartortlePool.length > 0){
-
-            // if we find an arrow in the pool, let's remove it from the pool
+            // Remove them from the pool
             var arrow = this.arrowPool.pop();
             var wartortle = this.wartortlePool.pop();
             wartortle.x = arrowX;
@@ -681,528 +676,360 @@ playGame.prototype = {
             // Otherwise each arrow instance would interfere with each other
             arrow.reset(game.width * arrowX, arrowY);
 
-            // custom property to tell us if the arrow is firing, initially set to false
+            // Custom property to tell us if the shell is firing, initially set to false
             arrow.isFiring = false;
 
-            /*  this line will just flip the arrow horizontally if it's on the right side of the game.
-                you can flip horizontally a sprite by setting its x scale to -1  */
+            // Flip the sprites if they're on the right side
             arrow.scale.x = 1 - 2 * arrowX;
             wartortle.scale.x = 1 - 2 * arrowX;
 
-            // make the arrow revive, setting its "alive", "exists" and "visible" properties all set to true
+            // Revive them; setting their "alive", "exists" and "visible" properties all set to true
             arrow.revive();
             wartortle.revive();
         }
 
-        // this is the case we did not find any arrow in the pool
+        // Empty pools? Add sprites
         else{
 
-            // Add the arrow sprite
             var arrow = game.add.sprite(game.width * arrowX, arrowY, "arrow");
             var wartortle = game.add.sprite(game.width * arrowX, arrowY, "wartortle");
+            // The shell is already running its animation behind the wartortle's idle animation
             var arrowSpin = arrow.animations.add("spin");
             var wartortleIdle = wartortle.animations.add("idle");
             wartortle.animations.play("idle", 4, true);
             arrow.animations.play("spin", 3, true);
 
-            // custom property to tell us if the arrow is firing, initially set to false
+            // custom property to tell us if the shell is firing, initially set to false
             arrow.isFiring = false;
 
-            // setting arrow registration point to center both horizontally and vertically
+            // setting shell and wartortle registration points
             arrow.anchor.set(0.75, 1);
             wartortle.anchor.set(0.5, 1);
 
-            /*  this line will just flip the arrow horizontally if it's on the right side of the game.
-                you can flip horizontally a sprite by setting its x scale to -1  */
+            // Flip sprites if they're on the right
             arrow.scale.x = 1 - 2 * arrowX;
             wartortle.scale.x = 1 - 2 * arrowX;
 
-            // enabling ARCADE physics to the arrow
+            // Enable ARCADE physics to the shell and wartortle
             game.physics.enable(arrow, Phaser.Physics.ARCADE);
             game.physics.enable(wartortle, Phaser.Physics.ARCADE);
 
-            // setting arrow's body as immovable
+            // Set their bodies to immovable
             arrow.body.immovable = true;
+            wartortle.body.immovable = true;
 
-            // adding arrow to arrow group
+            // Add them to their respective groups
             this.arrowGroup.add(arrow);
             this.wartortleGroup.add(wartortle);
         }
     },
 
-    // method to add a monster
+    // Add a monster (dugtrio)
     addMonster: function(){
 
-        // monsterX is the random horizontal placement of the monster, with a 50 pixels margin from game borders
+        // Horizontal placement of the dugtrio with a 50 pixels margin from game borders
         var monsterX = game.rnd.integerInRange(50, game.width - 50);
-
-        // monsterY is the vertical position where to place the monster
+        // Vertical position where to place the monster
         var monsterY = this.highestFloorY - 20;
 
-        // first, we see if we already have a monster sprite in the pool
+        // Check the pool for sprites
         if(this.monsterPool.length > 0){
-
-            // if we find a monster in the pool, let's remove it from the pool
+            // Remove a sprite instance
             var monster = this.monsterPool.pop();
-
-            // setting monster x coordinate
+            // Set its coordinates and revive
             monster.x = monsterX;
-
-            // setting monster y coordinate
             monster.y = monsterY;
-
-            // make the monster revive, setting its "alive", "exists" and "visible" properties all set to true
             monster.revive();
         }
 
-        // this is the case we did not find any monster in the pool
+        // If pool is empty
         else{
 
-            // adding the monster sprite
+            // adding the monster sprite and its animation
             var monster = game.add.sprite(monsterX, monsterY, "monster");
             var monsterWalk = monster.animations.add("walk", [0, 1]);
             var monsterDead = monster.animations.add("dead", [2]);
-
             monster.animations.play("walk", 2, true);
 
-            // setting monster registration point to center both horizontally and vertically
+            // Set monster registration point to center both horizontally and vertically
             monster.anchor.set(0.5);
-
-            // enabling ARCADE physics to the monster
+            // Enabling ARCADE physics to the monster
             game.physics.enable(monster, Phaser.Physics.ARCADE);
-
-            // setting monster's body as immovable
+            // Setting monster's body as immovable
             monster.body.immovable = true;
-
-            /*  an ARCADE physics body can be set to collide against the world bounds automatically
-                and rebound back into the world if collideWorldBounds property is set to true  */
+            // Setting collideWorldBounds to be true allows an ARCADE physics body to bounce back into the world
             monster.body.collideWorldBounds = true;
-
-            // setting the velocity of the monster, in pixels per second.
+            // Setting the velocity of the monster (- because my sprites are facing left instead of right)
             monster.body.velocity.x = -gameOptions.monsterSpeed;
 
-            /*  we need to detect when the monster collides with the world bounds.
-                this is why we are creating a Phaser signal which is basically a trigger which
-                can fire callback functions like the one you are about to see  */
+            // Detect when the monster body collides with the world bound
             monster.body.onWorldBounds = new Phaser.Signal();
-
-            /*  here is the callback function, called when a collision against world bounds happens,
-                passing five arguments: sprite, up, down, left, right
-                where "sprite" is a reference to the sprite which collided, and the other arguments
-                are Boolean variables indicating on which side of the world the sprite collided  */
+            // Trigger respective callback function depending on which bound (left or right) it hits
             monster.body.onWorldBounds.add(function(sprite, up, down, left, right){
 
-                // collision against the left bound of the game
                 if(left){
-
-                    // adjusting the velocity so that the sprite moves to the right
+                    // Adjusting the velocity so that the sprite moves to the right
                     sprite.body.velocity.x = gameOptions.monsterSpeed;
-
-                    // do not horizontally flip the sprite (the original image is with the sprite looking to the right)
+                    // Reverse the sprites direction
                     sprite.scale.x = -1;
                 }
-
-                // collision against the right bound of the game
                 if(right){
-
-                    // adjusting the velocity so that the sprite moves to the left
+                    // Adjust the velocity to go left
                     sprite.body.velocity.x = -gameOptions.monsterSpeed;
-
-                    // horizontally flip the sprite (the original image is with the sprite looking to the right)
+                    // Sprites already looking left
                     sprite.scale.x = 1;
                 }
             });
-
-            // adding monster to the group of deadly objects
+            // Add monster to deadlyGroup
             this.deadlyGroup.add(monster);
         }
     },
 
-    // method to add a spiked monster
+    // Add a spiked monster (rhydon)
     addSpikedMonster: function(){
 
-        // monsterX is the random horizontal placement of the spiked monster, with a 50 pixels margin from game borders
+        // Horizontal placement of the spiked monster, with a 50 pixels margin from game borders
         var monsterX = game.rnd.integerInRange(50, game.width - 50);
-
-        // monsterY is the vertical position where to place the spiked monster
+        // Vertical position where to place the spiked monster
         var monsterY = this.highestFloorY - 25;
 
-        // first, we see if we already have a spiked monster sprite in the pool
+        // Check its pool
         if(this.spikedMonsterPool.length > 0){
-
-            // if we find a spiked monster in the pool, let's remove it from the pool
+            // Remove sprite instance from the pool
             var monster = this.spikedMonsterPool.pop();
-
-            // setting spiked monster x coordinate
+            // set its spiked monster coordinates and revive
             monster.x = monsterX;
-
-            // setting spiked monster y coordinate
             monster.y = monsterY;
-
-            // make the spiked monster revive, setting its "alive", "exists" and "visible" properties all set to true
             monster.revive();
         }
 
-        // this is the case we did not find any spiked monster in the pool
+        // Its pool be empty?
         else{
-
-            // adding the spiked monster sprite
+            // Add sprites and animations
             var monster = game.add.sprite(monsterX, monsterY, "spikedmonster");
             var monsterWalk = monster.animations.add("walk", [0, 1]);
-
             monster.animations.play("walk", 2, true);
 
-            // setting spiked monster registration point to center both horizontally and vertically
+            // Set spikedMonster's registration point to center both horizontally and vertically
             monster.anchor.set(0.5);
-
-            // enabling ARCADE physics to the spiked monster
+            // Enabling ARCADE physics to the spiked monster
             game.physics.enable(monster, Phaser.Physics.ARCADE);
-
-            // setting spiked monster's body as immovable
+            // Setting spikedMonster's body as immovable
             monster.body.immovable = true;
-
-            /*  an ARCADE physics body can be set to collide against the world bounds automatically
-                and rebound back into the world if collideWorldBounds property is set to true  */
+            // Setting collideWorldBounds to be true allows an ARCADE physics body to bounce back into the world
             monster.body.collideWorldBounds = true;
-
-            // setting the velocity of the spiked monster, in pixels per second.
+            // Setting the velocity of the spiked monster
             monster.body.velocity.x = -gameOptions.monsterSpeed;
 
-            /*  we need to detect when the spiked monster collides with the world bounds.
-                this is why we are creating a Phaser signal which is basically a trigger which
-                can fire callback functions like the one you are about to see  */
+            // Same as addMonster, check if it hits the left or right world bound
+            // Callback function changes the velocity and the sprite's direction
             monster.body.onWorldBounds = new Phaser.Signal();
-
-            /*  here is the callback function, called when a collision against world bounds happens,
-                passing five arguments: sprite, up, down, left, right
-                where "sprite" is a reference to the sprite which collided, and the other arguments
-                are Booleans indicating on which side of the world the sprite collided  */
             monster.body.onWorldBounds.add(function(sprite, up, down, left, right){
 
-                // collision against the left bound of the game
                 if(left){
 
-                    // adjusting the velocity so that the sprite moves to the right
+                    // Adjust the velocity so that the sprite moves to the right
                     sprite.body.velocity.x = gameOptions.monsterSpeed;
-
-                    // do not horizontally flip the sprite (the original image is with the sprite looking to the right)
+                    // Flip the sprite (because its facing left)
                     sprite.scale.x = -1;
                 }
-
-                // collision against the right bound of the game
                 if(right){
 
-                    // adjusting the velocity so that the sprite moves to the left
+                    // Adjust the velocity so that the sprite moves to the left
                     sprite.body.velocity.x = -gameOptions.monsterSpeed;
-
-                    // horizontally flip the sprite (the original image is with the sprite looking to the right)
                     sprite.scale.x = 1;
                 }
             });
-
-            // adding spiked monster to the group of deadly objects
+            // Add spikedMonster to deadlyGroup
             this.deadlyGroup.add(monster);
         }
     },
 
-    // method to add a coin
+    // Add a coin
     addCoin: function(creationPoint){
-
-        /*  coins won't appear on every floor.
-            to have a coin appear on a floor:
-            - a random integer between 0 and coinRatio (both included) must be greater than zero
-            OR
-            - creationPoint must be different than null  */
+        // Coins shouldn't appear on every floor, this is where coinRatio comes in
+        // For the coin to appear, a random integer from 0 to coinRatio(2), must be greater than 0
+        // Makes the chance of a coin spawning 2/3
         if(game.rnd.integerInRange(0, gameOptions.coinRatio) != 0 || creationPoint != null){
 
-            // coinX is the random horizontal placement of the coin, with a 50 pixels margin from game borders
+            // Horizontal placement of the coin, with a 50 pixels margin from game borders
             var coinX = game.rnd.integerInRange(50, game.width - 50);
-
-            // coinY is the vertical position where to place the coin, it should appear in the middle height of a floor
+            // Vertical position where to place the coin, it should appear in the middle height of a floor so the player has to jump
             var coinY = this.highestFloorY - gameOptions.floorGap / 2;
-
-            // if creation point is not null, that is we have a given coordinate where to place the coin...
+            // When creationPoint is no longer null, that means a coordinate is set to place a coin
             if(creationPoint != null){
-
-                // overwrite coinX
+                // overwrite coinX and coinY
                 coinX = creationPoint.x;
-
-                // overwrite coinY
                 coinY = creationPoint.y;
             }
 
-            // first, we see if we already have a coin sprite in the pool
+            // Check the sprite pool
             if(this.coinPool.length > 0){
-
-                // if we find a coin in the pool, let's remove it from the pool
+                // Remove sprite instance
                 var coin = this.coinPool.pop();
-
-                // setting coin x coordinate
+                // set coin's x and y coordinates and revive
                 coin.x = coinX;
-
-                // setting coin y coordinate
                 coin.y = coinY;
-
-                // make the coin revive, setting its "alive", "exists" and "visible" properties all set to true
                 coin.revive();
             }
 
-            // this is the case we did not find any coin in the pool
+            // No coins in the pool??
             else{
-
-                // adding the coin sprite
+                // Add coin sprite and its animation
                 var coin = game.add.sprite(coinX, coinY, "coin");
-
-                /*  here comes into play Phaser animation manager.
-                    "animations.add" Adds a new animation under the given key ("rotate" in this case).
-                    now an animation has been create and it's ready to be played  */
                 var coinAnimation = coin.animations.add("rotate");
-
-                /*  this is how we play an animation.
-                    the three arguments represent:
-                    * the name of the animation to be played
-                    * the framerate to play the animation at, measured in frames per second
-                    * a Boolean value which tells us if the animation should be looped  */
-                coin.animations.play("rotate", 15, true);
-
-                // setting coin registration point to center both horizontally and vertically
+                // Animations take 3 arguments:
+                // .play("name", framerate, and true if it loops)
+                coin.animations.play("rotate", 12, true);
+                // Set coin's registration point to center both horizontally and vertically
                 coin.anchor.set(0.5);
-
-                // enabling ARCADE physics to the coin
+                // Enabling ARCADE physics to the coin
                 game.physics.enable(coin, Phaser.Physics.ARCADE);
-
-                // setting coin's body as immovable
+                // Setting coin's body as immovable
                 coin.body.immovable = true;
-
-                // adding the coin to the group of coins
+                // Adding the coin to coinGroup
                 this.coinGroup.add(coin);
             }
         }
     },
 
-    // method to add a spike
+    // Add a spike (grimer)
     addSpike: function(){
 
-        // normally we are placing one spike
+        // normally we are placing one spike, but spice it up with possibly adding 2 to a platform
+        // Like the coin change, this is where doubleSpikeRatio comes in
         var spikes = 1;
-
-        // but if a random integer number between zero and doubleSpikeRatio (both included) is equal to zero...
         if(game.rnd.integerInRange(0, gameOptions.doubleSpikeRatio) == 0){
-
-            // we will be placing two spikes
             spikes = 2;
         }
 
-        // exectuing this loop "spikes" times
+        // Loop through "spikes" times
         for(var i = 1; i <= spikes; i++){
-
-            /*  spikeXPosition can be a position which is considered safe (remember, we are trying to prevent
-                the creation of impossible floors) or false if we can't find a safe position in a reasonable
-                amount of retries
-                findSafePosition method does this job  */
+            // findSafePosition() makes sure that you're spawning grimers a safe distance from the vines
             var spikeXPosition = this.findSafePosition();
-
-            // setting spike y coordinate
+            // set spike's y coordinate
             var spikeYPosition = this.highestFloorY - 20;
-
-            // if we have a safe position where to place the spike...
+            // If you have a safe position, continue with checking the pool
             if(spikeXPosition){
-
-                // first, we see if we already have a spike sprite in the pool
                 if(this.spikePool.length > 0){
-
-                    // if we find a spike in the pool, let's remove it from the pool
+                    // Remove an instance
                     var spike = this.spikePool.pop();
-
-                    // setting spike x coordinate
+                    // set spike's x and y coordinates, and revive
                     spike.x = spikeXPosition;
-
-                    // setting spike y coordinate
                     spike.y = spikeYPosition;
-
-                    // make the spike revive, setting its "alive", "exists" and "visible" properties all set to true
                     spike.revive();
                 }
 
-                // this is the case we did not find any spike in the pool
+                // No grimers in da pool??? add some!
                 else{
 
-                    // adding the spike sprite
                     var spike = game.add.sprite(spikeXPosition, spikeYPosition, "spike");
                     var spikeRotate = spike.animations.add("rotate");
-
-                    // Adding Animations
-                    // .play("name", framerate, true or false if it loops)
+                    // Adding Animations: .play("name", framerate, true or false if it loops)
                     spike.animations.play("rotate", 7, true);
-
-                    // changing spike registration point to horizontal:center and vertical:top
+                    // Spike registration point is middle top
                     spike.anchor.set(0.5, 0);
-
-                    // enabling ARCADE physics to the spike
+                    // Enabling ARCADE physics to the spike, body immovable, add to deadlyGroup, you know the drill
                     game.physics.enable(spike, Phaser.Physics.ARCADE);
-
-                    // setting spike's body as immovable
                     spike.body.immovable = true;
-
-                    // adding the spike to the group of deadly objects
                     this.deadlyGroup.add(spike);
                 }
             }
         }
     },
 
-    // method to add fire
+    // Add fire (rapidash)
     addFire: function(){
-        // normally we are placing one fireplace
+        // normally we are placing one fireplace, but like spikes, what if 2? for funsies
         var firePlaces = 1;
-
-        // but if a random integer number between zero and doubleSpikeRatio (both included) is equal to zero...
         if(game.rnd.integerInRange(0, gameOptions.doubleSpikeRatio) == 0){
-
-            // we will be placing two fires
             firePlaces = 2;
         }
 
-        // exectuing this loop "firePlaces" times
+        // Loop through "firePlaces" times
         for(var i = 1; i <= firePlaces; i++){
 
-            /*  fireXPosition can be a position which is considered safe (remember, we are trying to prevent
-                the creation of impossible floors) or false if we can't find a safe position in a reasonable
-                amount of retries
-                findSafePosition method does this job  */
+            // Check for safeZones again
             var fireXPosition = this.findSafePosition();
-
-            // setting fire y coordinate
+            // set fire's y coordinate
             var fireYPosition = this.highestFloorY - 58;
-
-            // if we have a safe position where to place the fire...
+            // If there's a safeZone, check the pool
             if(fireXPosition){
 
-                // first, we see if we already have a fire sprite in the pool
                 if(this.firePool.length > 0){
-
-                    // if we find a fire in the pool, let's remove it from the pool
+                    // Remove a fire sprite instance
                     var fire = this.firePool.pop();
-
-                    // setting fire x coordinate
+                    // set fire's x and y coordinates and revive
                     fire.x = fireXPosition;
-
-                    // setting fire  y coordinate
                     fire.y = fireYPosition;
-
-                    // make the fire revive, setting its "alive", "exists" and "visible" properties all set to true
                     fire.revive();
                 }
 
-                // this is the case we did not find any fire in the pool
+                // No rapidash in the pool? It's because they're weak against water.
                 else{
-
-                    // adding the fire sprite
+                    // Add the sprite and its animation
                     var fire = game.add.sprite(fireXPosition, fireYPosition, "fire");
-
-                    /*  here comes into play Phaser animation manager.
-                        "animations.add" Adds a new animation under the given key ("burn" in this case).
-                        now an animation has been create and it's ready to be played  */
                     var fireAnimation = fire.animations.add("burn");
-
-                    /*  this is how we play an animation.
-                        the three arguments represent:
-                        * the name of the animation to be played
-                        * the framerate to play the animation at, measured in frames per second
-                        * a Boolean value which tells us if the animation should be looped  */
                     fire.animations.play("burn", 6, true);
-
-                    // changing fire registration point to horizontal:center and vertical:top
+                    // Fire registration point to middle top
                     fire.anchor.set(0.5, 0);
-
-                    // enabling ARCADE physics to the fire
+                    // Enabling ARCADE physics to the fire, body immovable, into deadlyGroup
                     game.physics.enable(fire, Phaser.Physics.ARCADE);
-
-                    // setting fire's body as immovable
                     fire.body.immovable = true;
-
-                    // adding the fire to the group of deadly objects
                     this.deadlyGroup.add(fire);
                 }
             }
         }
     },
 
-    // method to find a safe position where to place a spike or a fire
+    // Find a safe position where to place a spike or a fire
     findSafePosition: function(){
-
-        /*  we count how many attempts we are making to find a safe position,
-            to prevent infinite loops or excessive time to generate a floor  */
+        // Count how many attempts you make to find a safe zone, can't do this an excessive number of times
         var attempts = 0;
 
-        // ok let's start finding the safe position
         do{
-
-            // updating the amount of attempts
+            // increment the attepts
             attempts ++;
+            // Toss a random position, with a 155px margin from game borders
+            var posX = game.rnd.integerInRange(155, game.width - 155);
 
-            // tossing a random position, with a 150 pixels margin from game borders
-            var posX = game.rnd.integerInRange(150, game.width - 150);
-
-        /*  we exit the loop when:
-            * posX is in a safe position, determined by isSafe method
-            * it's the 10th attempt. we can say that if we did not find a safe position
-              within 10 attempts then never mind, it probably does not exist  */
+        // Loop through this search 10 times, if it hasn't found any within 10 attempts, there isn't one probably
         } while(!this.isSafe(posX) && attempts < 10);
-
-        // did we find a safe position?
+        // Found a good spot?
         if(this.isSafe(posX)){
-
-            // adding the new range to safeZone array
+            // Add the new range to safeZone array
             this.safeZone.push({
                 start: posX - gameOptions.safeRadius,
                 end: posX + gameOptions.safeRadius
             });
-
-            // return the position itself
+            // Return the position itself
             return posX;
         }
-
-        // if we did not find a safe position, return false
+        // Return false if no safe position was found
         return false;
     },
 
-    // method to check if a position is safe, the argument is the x coordinate
+    // Check if a position is safe, the argument is the x coordinate
     isSafe: function(n){
 
-        // looping through all safeZone array items
+        // Loop through all safeZone array items
         for(var i = 0; i < this.safeZone.length; i++){
-
-            // if the x coordinate is inside a safeZone item interval...
+            // If the x coordinate is inside a safeZone item's interval then it's too close, return false. Not safe.
             if(n > this.safeZone[i].start && n < this.safeZone[i].end){
-
-                // ... then it's not a safe zone, return false
                 return false;
             }
         }
-
-        /*  if we looped through all safeZone array it means the x coordinate
-            is not inside any interval of safeZone array, return true  */
+        // If not included, return true, it's safe.
         return true;
     },
 
-    // method to add the hero
+    // Add the player
     addHero: function(){
 
-        // adding the hero sprite
+        // Add the sprite and animations
         this.hero = game.add.sprite(game.width / 2, game.height * gameOptions.floorStart - 48, "hero");
-
-        /*  this is the method to add an animation to a sprite like you have already
-            seen when you created the animation of the coin and the fire.
-            now, the same sprite (the hero) can have more animations, that's why
-            there's a second argument which is the array of frames to be used in the animation.
-            in this case "walk" animation only takes frames 0 and 1 of the sprite sheet  */
         this.hero.animations.add("walk", [0, 3]);
-
-        // following the same concept, "climb" animation uses frames 2 and 3
         this.hero.animations.add("climb", [4, 5]);
-
-        // start playing "walk" animation, at 15 frames per second, in loop mode
         this.hero.animations.play("walk", 6, true);
 
         // adding the hero to game group
