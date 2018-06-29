@@ -1,167 +1,119 @@
 var game;
-// Store values as variables to be accessed in the game
+
+// Stored game values so the gameplay can be easily changed
 var gameOptions = {
 
-    // width of the game, height will scale
+    // Width of the game in pixels. Height will scale
     gameWidth: 800,
-    // Where active floor starts and space between them in pixels
+
+    // Where the first floor is placed, and the spacing between them in pixels
     floorStart: 1 / 8 * 5,
     floorGap: 250,
 
-    // Player properties
+    // local player gravity managed by ARCADE physics. Does not actually use any unit of measurement
     playerGravity: 10000,
+
+    // player speeds, in pixels per second
     playerSpeed: 450,
     climbSpeed: 450,
+    // jump force applied to the player
     playerJump: 1800,
 
     // speed of arrows, in pixels per second
     arrowSpeed: 1000,
 
-    /*  we do not want a coin to appear on each floor, so coinRatio is a variable with a positive number.
-        when a floor is created, a random integer number between 0 and coinRatio is generated, and
-        the coin will appear ony if the random number is greater than zero.
-        basically the probability for a coin to appear is coinRatio(coinRatio+1), or 2/3 in this case  */
+    // Value used in the addCoin method
+    // Makes the chance of a coin spawning on a floor 2/3
     coinRatio: 2,
 
-    // monster speed, in pixels per second
+    // enemy speed in pixels per second
     monsterSpeed: 250,
 
-    /*  following the same concept applied to coinRatio, doubleSpikeRatio determines whether we have
-        to put two spikes on the same floor. The probability is doubleSpikeRatio(doubleSpikeRatio+1)  */
+    // Value used in addSpike method
+    // If a spike spawns, it can spawn 1 or 2 instances on one platform
     doubleSpikeRatio: 1,
 
-    // you can customize up to the color of the sky thanks to skyColor, which accepts the hexadecimal RGB value
+    // sky color accepts the hexadecimal RGB value
     skyColor: 0x89d7fb,
 
-    /*  the radius, in pixel, of a "safe area" which is an area where no obstacles can be placed. I use it
-        to prevent spikes to be created too close to a ladder, or too close to other spikes, and so on  */
-    safeRadius: 180,
+    // Prevents spikes from spawning too close to each other or to the vines
+    safeRadius: 185,
 
-    /*  the name of the variable where to save game information into local storage. It's a string.
-        changing the string will also reset game information  */
-    localStorageName: "PokeClimb",
-
-    // version of the game. Just in case you need to display it somewhere
+    // Local storage name for high scores and coins, resets with string change
+    localStorageName: "ladderzGame",
+    // Version Number if wanted for display
     versionNumber: "1.0",
 
-    // relative path where to store sprites
+    // relative paths for assets
     spritesPath: "assets/sprites/",
-
-    // relative path where to store fonts
     fontsPath: "assets/fonts/",
-
-    // relative path where to store setBounds
     soundPath: "assets/sounds/"
 }
 
-// window.onload is executed immediately after the page has been loaded, so it's the first function to be executed
+// window.onload loads immediately after page load
 window.onload = function() {
 
-    // windowWidth variable gets the width in pixels of the browser window viewport
+    // width and height in pixels of the browser window viewport
     var windowWidth = window.innerWidth;
-
-    // windowHeight variable gets the height in pixels of the browser window viewport
     var windowHeight = window.innerHeight;
 
-    // if windowWidth is greater than windowHeight we are playing in landscape mode
+    // if windowWidth is greater than windowHeight we are playing in landscape mode, that's bad
     if(windowWidth > windowHeight){
 
-        /*  in this case we set windowHeight at about two times windowWidth.
-            this is the average portrait mode aspect ratio used by most mobile devices  */
+        // Set height to ~2x width, which is standard for most devices portrait modes
         windowHeight = windowWidth * 1.8;
     }
 
-    /*  now it's time to calculate game height.
-        it's all a matter of aspect ratio
-        we want the game to fill the full height of the window while keeping
-        width to 800, so we are going to multiply windowHeight by the ratio between
-        gameOptions.gameWidth and windowWidth.
-        example with an iPhone 7 (750x1334)
-        windowWidth = 750
-        windowHeight = 1334
-        gameOptions.gameWidth = 800 (fixed value)
-        gameHeight = 1334 * 800 / 750 = 1423
-        750x1334 has the same aspect ratio as 800x1423  */
+    // Calculate height to fill the height of the window, but never go more than 800px width
     var gameHeight = windowHeight * gameOptions.gameWidth / windowWidth;
 
-    /*  now it's time to create the game itself with a new Phaser.Game instance.
-        the two arguments are respectively the width and the height of the game.  */
+    // After width and height is calculated, it creates a new Phaser Game instance
     game = new Phaser.Game(gameOptions.gameWidth, gameHeight);
 
-    /*  here we define states.
-        basically, if you divide a game into "blocks", such as splash screen, main menu, the game itself and so on,
-        each of these “blocks” can be developed as a state.
-        nothing you can’t do with just plain coding, but if you consider states management flushes the memory,
-        releases resources, removes listeners and manages garbage collection, you will definitively want to use them in your games.
-
-        this is how we create a state: the first argument is the key, or the name given to the state,
-        and the second argument is the function itself.
-
-        creation of "BootGame" state  */
+    // States are blocks within the game (ex: splash screen, menu screen, the game itself, game over, etc)
     game.state.add("BootGame", bootGame);
-
-    // creation of "PreloadGame" state
     game.state.add("PreloadGame", preloadGame);
-
-    // creation of "PlayGame" state
     game.state.add("PlayGame", playGame);
 
-    /*  this is how we execute a state.
-        the argument is the key of the state to execute  */
+    // Execute a state by calling its given key name
     game.state.start("BootGame");
 }
 
-/*  bootGame is the first state to be called, and it basically boots the game
-    setting background color and scale mode  */
+// Sets the background color and scale mode
 var bootGame = function(game){}
 bootGame.prototype = {
 
-    /*  create method is automatically executed once the state has been created.
-        it's executed only once  */
+    // Create execute only once
     create: function(){
 
         // assigning a background color to the game
         game.stage.backgroundColor = gameOptions.skyColor;
 
-        // we'll execute next lines only if the game is not running on a desktop
+        // Execute next lines if the game is running on a desktop
         if(!Phaser.Device.desktop){
-            /*  we want the game to run only in portrait mode, so we need something
-                to force the game to run in only one orientation.
-                forceOrientation method enables generation of incorrect orientation signals
-                which we can handle to warn players they are playing in the wrong orientation  */
+            // forceOrientation method enables generation of incorrect orientation signals
             game.scale.forceOrientation(false, true);
-
-            // this function is executed when the game enters in an incorrect orientation
+            // Executed when the game enters in an incorrect orientation
             game.scale.enterIncorrectOrientation.add(function(){
 
-                // pausing the game. a paused game doesn't update any of its subsystems
+                // Pause the game and its subsystems, hide the canvase, show error message
                 game.paused = true;
-
-                // hiding the canvas
                 document.querySelector("canvas").style.display = "none";
-
-                // showing the div with the "wrong orientation" message
                 document.getElementById("wrongorientation").style.display = "block";
             })
 
-            // this function is executed when the game enters in an correct orientation
+            // Executed when the game enters in an correct orientation
             game.scale.leaveIncorrectOrientation.add(function(){
 
-                // resuming the game
+                // Resume the game
                 game.paused = false;
-
-                // showing the canvas
                 document.querySelector("canvas").style.display = "block";
-
-                // hiding the div with the "wrong orientation" message
                 document.getElementById("wrongorientation").style.display = "none";
             })
         }
 
-        /*  setting scale mode to cover the larger area of the window while
-            keeping display ratio and show all the content.
-            we know we are covering the entire area of a portrait device thanks to the
-            way we set game width and height  */
+        // Set scale mode to cover as large as an area as it can
+        // While keeping the ratio and showing all content
         game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
 
         // centering the canvas horizontally and vertically
@@ -187,11 +139,14 @@ preloadGame.prototype = {
             the first argument is the key, the second is the path to the image
             open "assets/sprites" folder to see all images
             in next line we are assigning "floor" key to "assets/sprites/floor.png" image  */
-        game.load.image("floor", gameOptions.spritesPath + "floor.png");
+        game.load.image("floor", gameOptions.spritesPath + "platform.png");
         game.load.image("ladder", gameOptions.spritesPath + "vine.png");
         game.load.image("coinparticle", gameOptions.spritesPath + "coinparticle.png");
+        // game.load.image("spike", gameOptions.spritesPath + "spike.png");
         game.load.image("cloud", gameOptions.spritesPath + "cloud.png");
-        // game.load.image("arrow", gameOptions.spritesPath + "arrow.png");
+        game.load.image("arrow", gameOptions.spritesPath + "arrow.png");
+        // game.load.image("monster", gameOptions.spritesPath + "monster.png");
+        // game.load.image("spikedmonster", gameOptions.spritesPath + "spikedmonster.png");
         game.load.image("tap", gameOptions.spritesPath + "pikachu.gif");
 
         /*  time to load the sound effects.
@@ -207,14 +162,15 @@ preloadGame.prototype = {
             open "assets/sprites" folder to see all images
             in next line we are assigning "hero" key to a sprite sheet located at
             "assets/sprites/floor.png" where each frame is inside a 24x48 grid  */
-        game.load.spritesheet("hero", gameOptions.spritesPath + "player-walk-climb.png", 26, 48);
+        game.load.spritesheet("hero", gameOptions.spritesPath + "player.png", 26, 48);
         game.load.spritesheet("coin", gameOptions.spritesPath + "coin.png", 48, 48);
         game.load.spritesheet("fire", gameOptions.spritesPath + "rapidash.png", 32, 58);
         game.load.spritesheet("bulbasaur", gameOptions.spritesPath + "bulbasaur.png", 40, 40);
         game.load.spritesheet("spike", gameOptions.spritesPath + "grimer.png", 39, 20);
         game.load.spritesheet("monster", gameOptions.spritesPath + "dugtrio-monster.png", 40, 40);
         game.load.spritesheet("spikedmonster", gameOptions.spritesPath + "rhydon-monster.png", 40, 50);
-        game.load.spritesheet("arrow", gameOptions.spritesPath + "shell.png", 21, 20);
+
+
 
         /*  you can also use bitmap font to create your own font with effects applied to it
             or just use fonts which aren't the old boring arial, verdana, etc.
@@ -301,9 +257,9 @@ playGame.prototype = {
         // this property will let us know if it's game over. It starts with "false" value because the game is not over yet
         this.gameOver = false;
 
-        /*  we use reachedfloor to keep track of the floor reached by the player.
+        /*  we use reachedFloor to keep track of the floor reached by the player.
             first floor is zero because it's the floor the player is running on during the splash screen  */
-        this.reachedfloor = 0;
+        this.reachedFloor = 0;
 
         // collectedCoins counts the coins the player collects. Starts at zero. No coins.
         this.collectedCoins = 0;
@@ -430,24 +386,24 @@ playGame.prototype = {
             * the x position
             * the y position
             * the key of the image  */
-        // var cloud = game.add.sprite(0, game.height, "cloud");
-        //
-        // /*  the anchor sets the origin point of the texture.
-        //     the default is 0,0 this means the texture's origin is the top left.
-        //     setting than anchor to 0.5,0.5 means the textures origin is centered.
-        //     setting the anchor to 1,1 would mean the textures origin points will be the bottom right corner.
-        //     in this case the anchor is set to the bottom left corner
-        // */
-        // cloud.anchor.set(0, 1);
-        //
-        // /*  we are applying the cloud a tint color with the same color as the background color.
-        //     since the cloud is a vertical gradient from transparent to opaque white, after the tint
-        //     it will be a gradient from transapret to opaque sky color.
-        //     this will give the "fade out" effect of the floor disappearing to the bottom of the screen  */
-        // cloud.tint = gameOptions.skyColor;
-        //
-        // // adding the cloud to overlayGroup
-        // this.overlayGroup.add(cloud);
+        var cloud = game.add.sprite(0, game.height, "cloud");
+
+        /*  the anchor sets the origin point of the texture.
+            the default is 0,0 this means the texture's origin is the top left.
+            setting than anchor to 0.5,0.5 means the textures origin is centered.
+            setting the anchor to 1,1 would mean the textures origin points will be the bottom right corner.
+            in this case the anchor is set to the bottom left corner
+        */
+        cloud.anchor.set(0, 1);
+
+        /*  we are applying the cloud a tint color with the same color as the background color.
+            since the cloud is a vertical gradient from transparent to opaque white, after the tint
+            it will be a gradient from transapret to opaque sky color.
+            this will give the "fade out" effect of the floor disappearing to the bottom of the screen  */
+        cloud.tint = gameOptions.skyColor;
+
+        // adding the cloud to overlayGroup
+        this.overlayGroup.add(cloud);
 
         /*  this is how we add a bitmap text to the game, let's have a look at the arguments:
             * the x coordinate
@@ -485,7 +441,7 @@ playGame.prototype = {
         var tap = game.add.sprite(game.width / 2, game.height - 150, "tap");
         tap.anchor.set(0.5);
         tap.width = 150;
-        tap.height = 120;
+        tap.height = 150;
         this.menuGroup.add(tap);
 
         /*  let's meet the tween.
@@ -504,12 +460,12 @@ playGame.prototype = {
         }, 200, Phaser.Easing.Cubic.InOut, true, 0, -1, true);
 
         // adding a bitmap text with in-game instructions ("tap to jump"), setting its anchor and add it to menuGroup group
-        var tapText = game.add.bitmapText(game.width / 2, tap.y - 120, "font", "tap to jump", 45);
+        var tapText = game.add.bitmapText(game.width / 2, tap.y - 120, "font", "Tap to jump", 45);
         tapText.anchor.set(0.5);
         this.menuGroup.add(tapText);
 
         // adding a bitmap text with game title, setting its anchor and add it to menuGroup group
-        var titleText = game.add.bitmapText(game.width / 2, tap.y - 200, "font2", "POKeCLIMB", 75);
+        var titleText = game.add.bitmapText(game.width / 2, tap.y - 200, "font2", "POKeCLIMB", 70);
         titleText.anchor.set(0.5);
         this.menuGroup.add(titleText);
     },
@@ -572,7 +528,7 @@ playGame.prototype = {
                                 case "floor":
 
                                     // removing the floor
-                                    this.killfloor(subItem);
+                                    this.killFloor(subItem);
                                     break;
                                 case "ladder":
 
@@ -626,7 +582,7 @@ playGame.prototype = {
             }, this);
 
             // this method will populate the floor with enemies
-            this.populatefloor(true);
+            this.populateFloor(true);
 
             // if we have more tweens to go...
             if(this.tweensToGo > 0){
@@ -644,47 +600,47 @@ playGame.prototype = {
     drawLevel: function(){
 
         // creation of a local variable which keep tracks of current floor
-        var currentfloor = 0;
+        var currentFloor = 0;
 
         /*  we are keeping track of the vertical coordinate of highest floor placed so far.
             since we just started to place floors, the first floor is placed at floorStart  */
-        this.highestfloorY = game.height * gameOptions.floorStart;
+        this.highestFloorY = game.height * gameOptions.floorStart;
 
         /*  this loop will keep on placing floors above the starting floor.
             each floor will be placed floorGap pixels above the previous
             floor until we reach - 2 * gameOptions.floorGap height, that is we placed
             two floors higher than the very top of the canvas  */
 
-        while(this.highestfloorY > - 2 * gameOptions.floorGap){
+        while(this.highestFloorY > - 2 * gameOptions.floorGap){
 
-                /*  populatefloor method will populate the floor with coins, ladders and enemies.
-                    it features a Boolean argument which is true if currentfloor is bigger than zero (it's not the first floor),
+                /*  populateFloor method will populate the floor with coins, ladders and enemies.
+                    it features a Boolean argument which is true if currentFloor is bigger than zero (it's not the first floor),
                     false otherwise  */
-                this.populatefloor(currentfloor > 0);
+                this.populateFloor(currentFloor > 0);
 
-                // at this time we added a floor, so it's time to update highestfloorY value
-                this.highestfloorY -= gameOptions.floorGap;
+                // at this time we added a floor, so it's time to update highestFloorY value
+                this.highestFloorY -= gameOptions.floorGap;
 
-                // increasing currentfloor counter
-                currentfloor ++;
+                // increasing currentFloor counter
+                currentFloor ++;
         }
 
-        /*  we have to add floorGap to highestfloorY because a few lines before
-            we updated the value of highestfloorY because we were going to add another floor,
+        /*  we have to add floorGap to highestFloorY because a few lines before
+            we updated the value of highestFloorY because we were going to add another floor,
             but once the condition of the while loop is not satisfied anymore, we
-            find ourselves with an highestfloorY value which does not reflect aymore the
+            find ourselves with an highestFloorY value which does not reflect aymore the
             actual position of the highest floor, and that's why we update it now  */
-        this.highestfloorY += gameOptions.floorGap;
+        this.highestFloorY += gameOptions.floorGap;
 
         // this method will add the hero to the game
         this.addHero();
     },
 
     // method to populate a floor, with a Boolean argument telling us if we also have to add stuff
-    populatefloor: function(addStuff){
+    populateFloor: function(addStuff){
 
-        // first, we call addfloor method which will add the floor itself
-        this.addfloor();
+        // first, we call addFloor method which will add the floor itself
+        this.addFloor();
 
         /*  this is where addStuff comes into play.
             at the moment we only added the floor, do we have to add other stuff?
@@ -762,7 +718,7 @@ playGame.prototype = {
     },
 
     // method to add a floor
-    addfloor: function(){
+    addFloor: function(){
 
         // first, we see if we already have a floor sprite in the pool
         if(this.floorPool.length > 0){
@@ -771,7 +727,7 @@ playGame.prototype = {
             var floor = this.floorPool.pop();
 
             // placing the floor at the vertical highest floor position allowed in the game
-            floor.y = this.highestfloorY;
+            floor.y = this.highestFloorY;
 
             // make the floor revive, setting its "alive", "exists" and "visible" properties all set to true
             floor.revive();
@@ -781,7 +737,7 @@ playGame.prototype = {
         else{
 
             // adding the floor sprite
-            var floor = game.add.sprite(0, this.highestfloorY, "floor");
+            var floor = game.add.sprite(0, this.highestFloorY, "floor");
 
             // adding floor sprite to floor group
             this.floorGroup.add(floor);
@@ -807,7 +763,7 @@ playGame.prototype = {
         var ladderXPosition = game.rnd.integerInRange(50, game.width - 50);
 
         // first, we see if we already have a ladder sprite in the pool
-        if(this.ladderPool.length > 0 && this.bulbasaurPool.length > 0){
+        if(this.ladderPool.length > 0){
 
             // if we find a floor in the pool, let's remove it from the pool
             var ladder = this.ladderPool.pop();
@@ -818,8 +774,8 @@ playGame.prototype = {
             bulbasaur.x = ladderXPosition;
 
             // placing the ladder at the vertical highest floor position allowed in the game
-            ladder.y = this.highestfloorY;
-            bulbasaur.y = this.highestfloorY;
+            ladder.y = this.highestFloorY;
+            bulbasaur.y = this.highestFloorY;
 
             // make the ladder revive, setting its "alive", "exists" and "visible" properties all set to true
             ladder.revive();
@@ -830,8 +786,8 @@ playGame.prototype = {
         else{
 
             // adding the ladder sprite
-            var ladder = game.add.sprite(ladderXPosition, this.highestfloorY, "ladder");
-            var bulbasaur = game.add.sprite(ladderXPosition, this.highestfloorY, "bulbasaur");
+            var ladder = game.add.sprite(ladderXPosition, this.highestFloorY, "ladder");
+            var bulbasaur = game.add.sprite(ladderXPosition, this.highestFloorY, "bulbasaur");
             var bulbasaurIdle = bulbasaur.animations.add("idle");
 
             bulbasaur.animations.play("idle", 2, true);
@@ -873,7 +829,7 @@ playGame.prototype = {
         var arrowX = game.rnd.integerInRange(0, 1);
 
         // arrowY is the vertical position where to place the arrow
-        var arrowY = this.highestfloorY - 20;
+        var arrowY = this.highestFloorY - 20;
 
         // first, we see if we already have an arrow sprite in the pool
         if(this.arrowPool.length > 0){
@@ -904,7 +860,6 @@ playGame.prototype = {
 
             // adding the ladder sprite
             var arrow = game.add.sprite(game.width * arrowX, arrowY, "arrow");
-            var arrowSpin = arrow.animations.add("spin", [0, 3]);
 
             // custom property to tell us if the arrow is firing, initially set to false
             arrow.isFiring = false;
@@ -934,7 +889,7 @@ playGame.prototype = {
         var monsterX = game.rnd.integerInRange(50, game.width - 50);
 
         // monsterY is the vertical position where to place the monster
-        var monsterY = this.highestfloorY - 20;
+        var monsterY = this.highestFloorY - 20;
 
         // first, we see if we already have a monster sprite in the pool
         if(this.monsterPool.length > 0){
@@ -958,9 +913,10 @@ playGame.prototype = {
             // adding the monster sprite
             var monster = game.add.sprite(monsterX, monsterY, "monster");
             var monsterWalk = monster.animations.add("walk", [0, 1]);
-            var monsterDead = monster.animations.add("dead", [3]);
+            var monsterDead = monster.animations.add("dead", [2]);
 
             monster.animations.play("walk", 2, true);
+
             // setting monster registration point to center both horizontally and vertically
             monster.anchor.set(0.5);
 
@@ -1021,7 +977,7 @@ playGame.prototype = {
         var monsterX = game.rnd.integerInRange(50, game.width - 50);
 
         // monsterY is the vertical position where to place the spiked monster
-        var monsterY = this.highestfloorY - 25;
+        var monsterY = this.highestFloorY - 25;
 
         // first, we see if we already have a spiked monster sprite in the pool
         if(this.spikedMonsterPool.length > 0){
@@ -1046,7 +1002,7 @@ playGame.prototype = {
             var monster = game.add.sprite(monsterX, monsterY, "spikedmonster");
             var monsterWalk = monster.animations.add("walk", [0, 1]);
 
-            monster.animations.play("walk", 4, true);
+            monster.animations.play("walk", 2, true);
 
             // setting spiked monster registration point to center both horizontally and vertically
             monster.anchor.set(0.5);
@@ -1115,7 +1071,7 @@ playGame.prototype = {
             var coinX = game.rnd.integerInRange(50, game.width - 50);
 
             // coinY is the vertical position where to place the coin, it should appear in the middle height of a floor
-            var coinY = this.highestfloorY - gameOptions.floorGap / 2;
+            var coinY = this.highestFloorY - gameOptions.floorGap / 2;
 
             // if creation point is not null, that is we have a given coordinate where to place the coin...
             if(creationPoint != null){
@@ -1199,7 +1155,7 @@ playGame.prototype = {
             var spikeXPosition = this.findSafePosition();
 
             // setting spike y coordinate
-            var spikeYPosition = this.highestfloorY - 20;
+            var spikeYPosition = this.highestFloorY - 20;
 
             // if we have a safe position where to place the spike...
             if(spikeXPosition){
@@ -1227,11 +1183,8 @@ playGame.prototype = {
                     var spike = game.add.sprite(spikeXPosition, spikeYPosition, "spike");
                     var spikeRotate = spike.animations.add("rotate");
 
-                    /*  this is how we play an animation.
-                        the three arguments represent:
-                        * the name of the animation to be played
-                        * the framerate to play the animation at, measured in frames per second
-                        * a Boolean value which tells us if the animation should be looped  */
+                    // Adding Animations
+                    // .play("name", framerate, true or false if it loops)
                     spike.animations.play("rotate", 7, true);
 
                     // changing spike registration point to horizontal:center and vertical:top
@@ -1272,7 +1225,7 @@ playGame.prototype = {
             var fireXPosition = this.findSafePosition();
 
             // setting fire y coordinate
-            var fireYPosition = this.highestfloorY - 58;
+            var fireYPosition = this.highestFloorY - 58;
 
             // if we have a safe position where to place the fire...
             if(fireXPosition){
@@ -1309,7 +1262,7 @@ playGame.prototype = {
                         * the name of the animation to be played
                         * the framerate to play the animation at, measured in frames per second
                         * a Boolean value which tells us if the animation should be looped  */
-                    fire.animations.play("burn", 5, true);
+                    fire.animations.play("burn", 6, true);
 
                     // changing fire registration point to horizontal:center and vertical:top
                     fire.anchor.set(0.5, 0);
@@ -1402,7 +1355,7 @@ playGame.prototype = {
         this.hero.animations.add("climb", [4, 5]);
 
         // start playing "walk" animation, at 15 frames per second, in loop mode
-        this.hero.animations.play("walk", 15, true);
+        this.hero.animations.play("walk", 6, true);
 
         // adding the hero to game group
         this.gameGroup.add(this.hero);
@@ -1440,7 +1393,7 @@ playGame.prototype = {
                 // adjusting the velocity so that the sprite moves to the right
                 this.hero.body.velocity.x = gameOptions.playerSpeed;
 
-                // horizontally flip the sprite (original is facing left)
+                // do not horizontally flip the sprite (the original image is with the sprite looking to the right)
                 this.hero.scale.x = -1;
             }
 
@@ -1450,7 +1403,7 @@ playGame.prototype = {
                 // adjusting the velocity so that the sprite moves to the left
                 this.hero.body.velocity.x = -gameOptions.playerSpeed;
 
-                 // Don't flip the sprite
+                 // horizontally flip the sprite (the original image is with the sprite looking to the right)
                 this.hero.scale.x = 1;
             }
 
@@ -1463,7 +1416,7 @@ playGame.prototype = {
                 localStorage.setItem(gameOptions.localStorageName,JSON.stringify({
 
                         // score takes the highest value between currently saved score and the amount of floors climbed
-                        score: Math.max(this.reachedfloor, this.savedData.score),
+                        score: Math.max(this.reachedFloor, this.savedData.score),
 
                         // collected coins are added to previoulsy saved coins
                         coins: this.collectedCoins + this.savedData.coins
@@ -1516,7 +1469,7 @@ playGame.prototype = {
             this.fireArrow();
 
             // method to check for hero Vs floor collision
-            this.checkfloorCollision();
+            this.checkFloorCollision();
 
             // method to check for hero Vs ladder collision
             this.checkLadderCollision();
@@ -1552,7 +1505,6 @@ playGame.prototype = {
                     game.time.events.add(game.rnd.integerInRange(500, 1500), function(){
 
                         // giving arrow body a x velocity keeping an eye on arrow scale which changes according to arrow direction
-                        item.animations.animations.play("spin", 4, true);
                         item.body.velocity.x = gameOptions.arrowSpeed * item.scale.x;
                     }, this);
 
@@ -1565,7 +1517,7 @@ playGame.prototype = {
     },
 
     // this method checks for collision between hero and floors
-    checkfloorCollision: function(){
+    checkFloorCollision: function(){
 
         /*  collide method checks for collision between two game objects, defined in the first and second parameter.
             as you can see, you can perform collision checking between a sprite and a group.
@@ -1606,7 +1558,7 @@ playGame.prototype = {
                     this.hero.body.velocity.x = 0;
 
                     // moving the hero vertically, up at climbSpeed pixels/second
-                    this.hero.body.velocity.y = -gameOptions.climbSpeed;
+                    this.hero.body.velocity.y = - gameOptions.climbSpeed;
 
                     // stop applying gravity to the hero, to avoid climb speed to decrease
                     this.hero.body.gravity.y = 0;
@@ -1615,7 +1567,7 @@ playGame.prototype = {
                     this.isClimbing = true;
 
                     // playing "climb" animation, at 15 frames per second in loop mode
-                    this.hero.animations.play("climb", 15, true);
+                    this.hero.animations.play("climb", 6, true);
 
 
                     /*  there's something to say about these lines, as they are very important to make
@@ -1661,11 +1613,11 @@ playGame.prototype = {
                 // let's start play "walk" animation again
                 this.hero.animations.play("walk", 15, true);
 
-                // updating reachedfloor property as we climbed one more floor
-                this.reachedfloor ++;
+                // updating reachedFloor property as we climbed one more floor
+                this.reachedFloor ++;
 
                 // updating text property of a bitmap text will update the text it shows
-                this.scoreText.text = this.reachedfloor.toString();
+                this.scoreText.text = this.reachedFloor.toString();
             }
         }
     },
@@ -1769,6 +1721,7 @@ playGame.prototype = {
 
                     // playing jump sound
                     this.jumpSound.play();
+
                     // we are adding a coin at monster's position to reward the hero which bravely killed a monster
                     this.addCoin(deadly.position);
 
@@ -1807,7 +1760,7 @@ playGame.prototype = {
     },
 
     // method to remove a floor
-    killfloor: function(floor){
+    killFloor: function(floor){
 
         /*  kill methos kills a a game objects, setting its "alive", "exists" and "visible" properties to false.
             killing a game object is a way to quickly recycle it in an object pool, like we are going to do  */
@@ -1825,6 +1778,11 @@ playGame.prototype = {
 
         // inserting ladder sprite into ladder pool by adding it into ladderPool array
         this.ladderPool.push(ladder);
+    },
+
+    killBulbasaur: function(bulbasaur){
+      bulbasaur.kill();
+      this.bulbasaurPool.push(bulbasaur);
     },
 
     // method to remove a coin

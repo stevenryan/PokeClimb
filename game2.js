@@ -1,180 +1,119 @@
-// the game itself
 var game;
 
-/*  here we store the various game options, easy to find and change.
-    each change in these variables affects the gameplay, so feel free to experiment  */
+// Stored game values so the gameplay can be easily changed
 var gameOptions = {
 
-    // width of the game, in pixels. Height will be calculated accordingly
+    // Width of the game in pixels. Height will scale
     gameWidth: 800,
 
-    /*  where will first floor be placed? In this case at 5/8 the height of the game
-        this is where the player will move  */
+    // Where the first floor is placed, and the spacing between them in pixels
     floorStart: 1 / 8 * 5,
-
-    // gap between two floors, in pixels. In this case each floor is 250 pixels above previous floor
     floorGap: 250,
 
-    // local player gravity, managed by ARCADE physics. Does not actually use any unit of measurement
+    // local player gravity managed by ARCADE physics. Does not actually use any unit of measurement
     playerGravity: 10000,
 
-    // player movement speed, in pixels per second
+    // player speeds, in pixels per second
     playerSpeed: 450,
-
-    // player climibng speed, in pixelsp er second
     climbSpeed: 450,
-
-    // force applied to the player when the character jumps
+    // jump force applied to the player
     playerJump: 1800,
 
     // speed of arrows, in pixels per second
     arrowSpeed: 1000,
 
-    /*  we do not want a coin to appear on each floor, so coinRatio is a variable with a positive number.
-        when a floor is created, a random integer number between 0 and coinRatio is generated, and
-        the coin will appear ony if the random number is greater than zero.
-        basically the probability for a coin to appear is coinRatio(coinRatio+1), or 2/3 in this case  */
+    // Value used in the addCoin method
+    // Makes the chance of a coin spawning on a floor 2/3
     coinRatio: 2,
 
-    // monster speed, in pixels per second
+    // enemy speed in pixels per second
     monsterSpeed: 250,
 
-    /*  following the same concept applied to coinRatio, doubleSpikeRatio determines whether we have
-        to put two spikes on the same floor. The probability is doubleSpikeRatio(doubleSpikeRatio+1)  */
+    // Value used in addSpike method
+    // If a spike spawns, it can spawn 1 or 2 instances on one platform
     doubleSpikeRatio: 1,
 
-    // you can customize up to the color of the sky thanks to skyColor, which accepts the hexadecimal RGB value
+    // sky color accepts the hexadecimal RGB value
     skyColor: 0x89d7fb,
 
-    /*  the radius, in pixel, of a "safe area" which is an area where no obstacles can be placed. I use it
-        to prevent spikes to be created too close to a ladder, or too close to other spikes, and so on  */
-    safeRadius: 180,
+    // Prevents spikes from spawning too close to each other or to the vines
+    safeRadius: 185,
 
-    /*  the name of the variable where to save game information into local storage. It's a string.
-        changing the string will also reset game information  */
+    // Local storage name for high scores and coins, resets with string change
     localStorageName: "ladderzGame",
-
-    // version of the game. Just in case you need to display it somewhere
+    // Version Number if wanted for display
     versionNumber: "1.0",
 
-    // relative path where to store sprites
+    // relative paths for assets
     spritesPath: "assets/sprites/",
-
-    // relative path where to store fonts
     fontsPath: "assets/fonts/",
-
-    // relative path where to store setBounds
     soundPath: "assets/sounds/"
 }
 
-// window.onload is executed immediately after the page has been loaded, so it's the first function to be executed
+// window.onload loads immediately after page load
 window.onload = function() {
 
-    // windowWidth variable gets the width in pixels of the browser window viewport
+    // width and height in pixels of the browser window viewport
     var windowWidth = window.innerWidth;
-
-    // windowHeight variable gets the height in pixels of the browser window viewport
     var windowHeight = window.innerHeight;
 
-    // if windowWidth is greater than windowHeight we are playing in landscape mode
+    // if windowWidth is greater than windowHeight we are playing in landscape mode, that's bad
     if(windowWidth > windowHeight){
 
-        /*  in this case we set windowHeight at about two times windowWidth.
-            this is the average portrait mode aspect ratio used by most mobile devices  */
+        // Set height to ~2x width, which is standard for most devices portrait modes
         windowHeight = windowWidth * 1.8;
     }
 
-    /*  now it's time to calculate game height.
-        it's all a matter of aspect ratio
-        we want the game to fill the full height of the window while keeping
-        width to 800, so we are going to multiply windowHeight by the ratio between
-        gameOptions.gameWidth and windowWidth.
-        example with an iPhone 7 (750x1334)
-        windowWidth = 750
-        windowHeight = 1334
-        gameOptions.gameWidth = 800 (fixed value)
-        gameHeight = 1334 * 800 / 750 = 1423
-        750x1334 has the same aspect ratio as 800x1423  */
+    // Calculate height to fill the height of the window, but never go more than 800px width
     var gameHeight = windowHeight * gameOptions.gameWidth / windowWidth;
 
-    /*  now it's time to create the game itself with a new Phaser.Game instance.
-        the two arguments are respectively the width and the height of the game.  */
+    // After width and height is calculated, it creates a new Phaser Game instance
     game = new Phaser.Game(gameOptions.gameWidth, gameHeight);
 
-    /*  here we define states.
-        basically, if you divide a game into "blocks", such as splash screen, main menu, the game itself and so on,
-        each of these “blocks” can be developed as a state.
-        nothing you can’t do with just plain coding, but if you consider states management flushes the memory,
-        releases resources, removes listeners and manages garbage collection, you will definitively want to use them in your games.
-
-        this is how we create a state: the first argument is the key, or the name given to the state,
-        and the second argument is the function itself.
-
-        creation of "BootGame" state  */
+    // States are blocks within the game (ex: splash screen, menu screen, the game itself, game over, etc)
     game.state.add("BootGame", bootGame);
-
-    // creation of "PreloadGame" state
     game.state.add("PreloadGame", preloadGame);
-
-    // creation of "PlayGame" state
     game.state.add("PlayGame", playGame);
 
-    /*  this is how we execute a state.
-        the argument is the key of the state to execute  */
+    // Execute a state by calling its given key name
     game.state.start("BootGame");
 }
 
-/*  bootGame is the first state to be called, and it basically boots the game
-    setting background color and scale mode  */
+// Sets the background color and scale mode
 var bootGame = function(game){}
 bootGame.prototype = {
 
-    /*  create method is automatically executed once the state has been created.
-        it's executed only once  */
+    // Create execute only once
     create: function(){
 
         // assigning a background color to the game
         game.stage.backgroundColor = gameOptions.skyColor;
 
-        // we'll execute next lines only if the game is not running on a desktop
+        // Execute next lines if the game is running on a desktop
         if(!Phaser.Device.desktop){
-            /*  we want the game to run only in portrait mode, so we need something
-                to force the game to run in only one orientation.
-                forceOrientation method enables generation of incorrect orientation signals
-                which we can handle to warn players they are playing in the wrong orientation  */
+            // forceOrientation method enables generation of incorrect orientation signals
             game.scale.forceOrientation(false, true);
-
-            // this function is executed when the game enters in an incorrect orientation
+            // Executed when the game enters in an incorrect orientation
             game.scale.enterIncorrectOrientation.add(function(){
 
-                // pausing the game. a paused game doesn't update any of its subsystems
+                // Pause the game and its subsystems, hide the canvase, show error message
                 game.paused = true;
-
-                // hiding the canvas
                 document.querySelector("canvas").style.display = "none";
-
-                // showing the div with the "wrong orientation" message
                 document.getElementById("wrongorientation").style.display = "block";
             })
 
-            // this function is executed when the game enters in an correct orientation
+            // Executed when the game enters in an correct orientation
             game.scale.leaveIncorrectOrientation.add(function(){
 
-                // resuming the game
+                // Resume the game
                 game.paused = false;
-
-                // showing the canvas
                 document.querySelector("canvas").style.display = "block";
-
-                // hiding the div with the "wrong orientation" message
                 document.getElementById("wrongorientation").style.display = "none";
             })
         }
 
-        /*  setting scale mode to cover the larger area of the window while
-            keeping display ratio and show all the content.
-            we know we are covering the entire area of a portrait device thanks to the
-            way we set game width and height  */
+        // Set scale mode to cover as large as an area as it can
+        // While keeping the ratio and showing all content
         game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
 
         // centering the canvas horizontally and vertically
@@ -184,374 +123,295 @@ bootGame.prototype = {
         // prevent the game to pause if it loses focus.
         game.stage.disableVisibilityChange = true;
 
-        // now start "PreloadGame" state
+        // Start "PreloadGame" state
         game.state.start("PreloadGame");
     }
 }
 
-// in preloadGame we will preload all game assets
+// Preload all game assets
 var preloadGame = function(game){}
 preloadGame.prototype = {
 
-    // preload method is automatically executed at preload time, before "create" method
+    // Executed at preload time, before "create" method
     preload: function(){
 
-        /*  this is how we load an image.
-            the first argument is the key, the second is the path to the image
-            open "assets/sprites" folder to see all images
-            in next line we are assigning "floor" key to "assets/sprites/floor.png" image  */
-        game.load.image("floor", gameOptions.spritesPath + "floor.png");
-        game.load.image("ladder", gameOptions.spritesPath + "ladder.png");
+        // Loading Assets
+        // .type(image, audio, spritesheet, etc)("Key Name", File Path);
+        game.load.image("floor", gameOptions.spritesPath + "platform.png");
+        game.load.image("ladder", gameOptions.spritesPath + "vine.png");
         game.load.image("coinparticle", gameOptions.spritesPath + "coinparticle.png");
-        game.load.image("spike", gameOptions.spritesPath + "spike.png");
-        // game.load.image("cloud", gameOptions.spritesPath + "cloud.png");
+        game.load.image("cloud", gameOptions.spritesPath + "cloud.png");
         game.load.image("arrow", gameOptions.spritesPath + "arrow.png");
-        game.load.image("monster", gameOptions.spritesPath + "monster.png");
-        game.load.image("spikedmonster", gameOptions.spritesPath + "spikedmonster.png");
-        game.load.image("tap", gameOptions.spritesPath + "tap.png");
+        game.load.image("tap", gameOptions.spritesPath + "pikachu.gif");
+        game.load.image('mountains-back', gameOptions.spritesPath + 'mountains-back.png');
+        game.load.image('mountains-mid1', gameOptions.spritesPath + 'mountains-mid1.png');
+        game.load.image('mountains-mid2', gameOptions.spritesPath + 'mountains-mid2.png');
 
-        /*  time to load the sound effects.
-            it's the same concept applied to images, with the key/path couple of arguments  */
+        // Loads sound effects
         game.load.audio("coinsound", gameOptions.soundPath + "coin.mp3");
         game.load.audio("jumpsound", gameOptions.soundPath + "jump.mp3");
         game.load.audio("hurtsound", gameOptions.soundPath + "hurt.mp3");
 
-        /*  a sprite sheet is something more complex than an image, as it's
-            a set of images placed into a grid, where each grid item represents a frame.
-            the first two arguments remain the same as seen with load.image, while the
-            3rd and 4th arguments represent grid width and height.
-            open "assets/sprites" folder to see all images
-            in next line we are assigning "hero" key to a sprite sheet located at
-            "assets/sprites/floor.png" where each frame is inside a 24x48 grid  */
-        game.load.spritesheet("hero", gameOptions.spritesPath + "hero.png", 24, 48);
+        // Spritesheets take the width & height of a frame after the file path
+        game.load.spritesheet("hero", gameOptions.spritesPath + "player.png", 26, 48);
         game.load.spritesheet("coin", gameOptions.spritesPath + "coin.png", 48, 48);
-        game.load.spritesheet("fire", gameOptions.spritesPath + "fire.png", 32, 58);
+        game.load.spritesheet("fire", gameOptions.spritesPath + "rapidash.png", 32, 58);
+        game.load.spritesheet("bulbasaur", gameOptions.spritesPath + "bulbasaur.png", 40, 40);
+        game.load.spritesheet("spike", gameOptions.spritesPath + "grimer.png", 39, 20);
+        game.load.spritesheet("monster", gameOptions.spritesPath + "dugtrio-monster.png", 40, 40);
+        game.load.spritesheet("spikedmonster", gameOptions.spritesPath + "rhydon-monster.png", 40, 50);
 
-        /*  you can also use bitmap font to create your own font with effects applied to it
-            or just use fonts which aren't the old boring arial, verdana, etc.
-            as with all load operations the first parameter is the key
-            next is the bitmap font file itself, usually a png image
-            finally is the path to the fnt file that goes with the font.
-            You can create your bitmap fonts with the free online tool Littera - http://kvazars.com/littera/  */
+        // You can create your bitmap fonts with the free online tool Littera - http://kvazars.com/littera/  */
         game.load.bitmapFont("font", gameOptions.fontsPath + "font.png", gameOptions.fontsPath + "font.fnt");
+        game.load.bitmapFont("font2", gameOptions.fontsPath + "font2.png", gameOptions.fontsPath + "font2.fnt");
     },
 
     // create method is automatically executed once the state has been created.
     create: function(){
 
-        // now start "PlayGame" state
+        // Start "PlayGame" state
         game.state.start("PlayGame");
     }
 }
 
-// in playGame you can find the game itself
 var playGame = function(game){}
 playGame.prototype = {
 
-    /*  create method is automatically executed once the state has been created.
-        we will use to set up the game and wait for player interaction  */
+    // Set up the game and wait for player interaction
     create: function(){
 
-        /*  using a ternary operator to save into savedData variable the object inside local storage, or new object with both "score" and "coins" values to zero.
-            basically we check if localStorage.getItem(gameOptions.localStorageName) is null (no saved data)
-            in this case savedData will become the object {score : 0, coins: 0}
-            if localStorage.getItem(gameOptions.localStorageName) is NOT null, savedData will become the object created by
-            decoding the JSON string saved  */
+        // Creates a storage object or updates an existing one for the high score and coins collected
         this.savedData = localStorage.getItem(gameOptions.localStorageName) == null ? {score : 0, coins: 0} : JSON.parse(localStorage.getItem(gameOptions.localStorageName));
 
-        /*  each game starts with some default properties such as the score at zero, the lives at three
-            and so on, which are defined in this case by setDefaultProperties method  */
+        // Sets the default properties (ex lives = 3, score = 0, timer, etc)
         this.setDefaultProperties();
-
-        // this method will add audio to the game
+        // Add audio to the game
         this.addAudio();
 
-        /*  we are using ARCADE physics in this game.
-            the physics engine will handle collisions, overlaps, velocities and motions  */
+        // ARCADE Physics will handle collisions, overlaps, velocities and motions
         game.physics.startSystem(Phaser.Physics.ARCADE);
 
-        /*  we have to define world bounds.
-            a game has only one world: the abstract place in which all game objects live.
-            world is not bound by stage limits and can be any size.
-            "setBounds" updates the size of this world, and the four arguments are respectively:
-            x coordintate of the top left most corner of the world, in pixels.
-            y coordintate of the top left most corner of the world.
-            width of the game world in pixels.
-            height of the game world in pixels  */
+        // Defining World Bounds takes 4 arguments
+        // x & y coordinate of the top left corner of the world
+        // width & height of the world
         game.world.setBounds(0, - 3 * gameOptions.floorGap, game.width, game.height + 3 * gameOptions.floorGap);
 
-        /*  this method will create the groups required by the game
-            a group is a container for display objects including sprites and images.
-            we will also use groups to check for collisions  */
+        // Parallax Background
+        this.mountainsBack = this.game.add.tileSprite(0,
+            this.game.height - this.game.cache.getImage('mountains-back').height,
+            this.game.width,
+            this.game.cache.getImage('mountains-back').height,
+            'mountains-back'
+        );
+
+        this.mountainsMid1 = this.game.add.tileSprite(0,
+            this.game.height - this.game.cache.getImage('mountains-mid1').height,
+            this.game.width,
+            this.game.cache.getImage('mountains-mid1').height,
+            'mountains-mid1'
+        );
+
+        this.mountainsMid2 = this.game.add.tileSprite(0,
+            this.game.height - this.game.cache.getImage('mountains-mid2').height,
+            this.game.width,
+            this.game.cache.getImage('mountains-mid2').height,
+            'mountains-mid2'
+        );
+        // Creating groups to display objects and check for collisions
         this.defineGroups();
-
-        // this method will create a particle emitter to be used when the player collects a coin
+        // Particle emitter for when coins are collected
         this.createParticles();
-
-        // this method will create a fixed overlay where we'll place the score
+        // Fixed overlay for the score and coins
         this.createOverlay();
-
-        // this method will create the menu
+        // Create the menu
         this.createMenu();
-
-        // this method will define the tweens to be used in game
+        // Define the tweens to be used in game
         this.defineTweens();
-
-        // this method will draw the level
+        // Draw the level
         this.drawLevel();
 
-        /*  this is a listener which waits for a pointer - mouse or finger - to be pressed down
-            then fire the callback function this.handkeTap.
-            the "this" in the second argument is the context used in the function.  */
+        // Waits for input, a pointer from a mouse or finger, before firing the callback function
         game.input.onDown.add(this.handleTap, this);
     },
 
-    // method to set default properties
+    // Set default properties
     setDefaultProperties: function(){
-        // this property will let us know if it's game over. It starts with "false" value because the game is not over yet
+        // When the game starts, the gameOver value is always false
         this.gameOver = false;
-
-        /*  we use reachedFloor to keep track of the floor reached by the player.
-            first floor is zero because it's the floor the player is running on during the splash screen  */
+        // Keep track of the player's reachedFloor to be able to update the high score
         this.reachedFloor = 0;
-
-        // collectedCoins counts the coins the player collects. Starts at zero. No coins.
+        // collectedCoins always starts at 0, but updates the total coins in local storage
         this.collectedCoins = 0;
-
-        // flag to determine if the player can jump
+        // Determine if the player can jump
         this.canJump = true;
-
-        // flag to determine if the player is climbing a ladder
+        // Determine if the player is climbing a ladder
         this.isClimbing = false;
 
-        /*  to save resources, this game uses object pooling.
-            object pooling is a technique which stores a collection of a particular object that an application will create
-            and keeps on hand for those situations where creating each instance is expensive.
-            once a graphic asset does not need anymore
-        */
-
-        // the empty array for floor pooling
+        // Object pooling stores a collection of objects to use
+        // Rather than creating new instances every time
         this.floorPool = [];
-
-        // the empty array for ladder pooling
         this.ladderPool = [];
-
-        // the empty array for coin pooling
+        this.bulbasaurPool = [];
         this.coinPool = [];
-
-        // the empty array for spike pooling
         this.spikePool = [];
-
-        // the empty array for fire pooling
         this.firePool = [];
-
-        // the empty array for arrow pooling
         this.arrowPool = [];
-
-        // the empty array for monster pooling
         this.monsterPool = [];
-
-        // the empty array for spiked monster pooling
         this.spikedMonsterPool = [];
     },
 
-    // this method will define the sound effects used in the game
+    // Define the sound effects used in the game
     addAudio: function(){
-
-        /*  this is how we add an audio resource to the game, the argument is the key
-            we assigned to the sound during preload  */
+        // Use the Key names created in Preload
         this.coinSound = game.add.audio("coinsound");
         this.hurtSound = game.add.audio("hurtsound");
         this.jumpSound = game.add.audio("jumpsound");
     },
 
-    // this method will define the groups used in the game
+    // Define the groups used in the game
     defineGroups: function(){
 
-        /*  as you can see, with game.add.group() you will add a group
-            gameGroup is the main group, and will contain children groups  */
+        // gameGroup will contain many children groups
         this.gameGroup = game.add.group();
 
         // group which will contain all floors
         this.floorGroup = game.add.group();
-
-        // floorGroup is a child of gameGroup
         this.gameGroup.add(this.floorGroup);
 
-        // group which will contain all ladders, child of gameGroup
+        // groups for vines and bulbasaurs
         this.ladderGroup = game.add.group();
+        this.bulbasaurGroup = game.add.group();
         this.gameGroup.add(this.ladderGroup);
+        this.gameGroup.add(this.bulbasaurGroup);
 
-        // group which will contain all coins, child of gameGroup
+        // group for coins
         this.coinGroup = game.add.group();
         this.gameGroup.add(this.coinGroup);
 
-        // group which will contain all flames, monsters and spikes, child of gameGroup
+        // group for all deadly objects (rapidash, grimers, dugtrios, rhydons)
         this.deadlyGroup = game.add.group();
         this.gameGroup.add(this.deadlyGroup);
 
-        // group which will contain all arrows, child of gameGroup
+        // group which will contain all arrows
         this.arrowGroup = game.add.group();
         this.gameGroup.add(this.arrowGroup);
 
-        // group which will contain overlay information
+        // groups for overlay and menu
         this.overlayGroup = game.add.group();
-
-        // group which will contain the menu
         this.menuGroup = game.add.group();
     },
 
-    // method to create a particle emitter
+    // Create a particle emitter
     createParticles: function(){
-        /*  an emitter is a lightweight particle emitter that uses ARCADE physics.
-            it can be used for one-time explosions or for continuous effects like rain and fire.
-            all it really does is launch Particle objects out at set intervals,
-            and fixes their positions and velocities accordingly.
-            the three arguments represent respectively:
-            * the x coordinate within the emitter that the particles are emitted from.
-            * the y coordinate within the Emitter that the particles are emitted from.
-            * the total number of particles in this emitter.  */
+      // lightweight particles that use ARCADE Physics, takes 3 arguments
+      // x and y coordinates for where the particles are emitted from.
+      // the total number of particles in this emitter
         this.emitter = game.add.emitter(0, 0, 80);
 
-        // telling the emitter we will be using the image with "coinparticle" key
+        // Tells the emitter what image to use as particles
         this.emitter.makeParticles("coinparticle");
 
-        /*  each particle will have a randomly generated alpha (transparency) from 0.4 to 0.6
-            remember 0 = completely transparent; 1 = completely opaque  */
+        // Randomly generated alpha (transparency) from 0.4 to 0.6
+        // 0 = completely transparent; 1 = completely opaque
         this.emitter.setAlpha(0.4, 0.6);
 
-        /*  each particle will have a randomly generated x and y scale between 0.4 and 0.6
-            the first two arguments define minimum and maximum of x scale
-            the second two arguments refer to y scale  */
+        // Randomly generate the particle's scale. (min, max, rangeStart, rangeEnd)
         this.emitter.setScale(0.4, 0.6, 0.4, 0.6);
 
-        // the emitter is added to gameGroup group
+        // Add emitter to gameGroup group
         this.gameGroup.add(this.emitter);
     },
 
-    // method to create the overlay
+    // Create the overlay
     createOverlay: function(){
 
-        /*  this is how we add a sprite to the game.
-            the three arguments are:
-            * the x position
-            * the y position
-            * the key of the image  */
-        // var cloud = game.add.sprite(0, game.height, "cloud");
-        //
-        // /*  the anchor sets the origin point of the texture.
-        //     the default is 0,0 this means the texture's origin is the top left.
-        //     setting than anchor to 0.5,0.5 means the textures origin is centered.
-        //     setting the anchor to 1,1 would mean the textures origin points will be the bottom right corner.
-        //     in this case the anchor is set to the bottom left corner
-        // */
-        // cloud.anchor.set(0, 1);
-        //
-        // /*  we are applying the cloud a tint color with the same color as the background color.
-        //     since the cloud is a vertical gradient from transparent to opaque white, after the tint
-        //     it will be a gradient from transapret to opaque sky color.
-        //     this will give the "fade out" effect of the floor disappearing to the bottom of the screen  */
-        // cloud.tint = gameOptions.skyColor;
-        //
-        // // adding the cloud to overlayGroup
-        // this.overlayGroup.add(cloud);
+        // Adding Sprites takes 3 arguments
+        // (x-position, y-position, key name)
+        var cloud = game.add.sprite(0, game.height, "cloud");
 
-        /*  this is how we add a bitmap text to the game, let's have a look at the arguments:
-            * the x coordinate
-            * the y coordinate
-            * the key of the font used
-            * the string to write
-            * the font size
-            in this case we are showing the best score
-        */
+        // Anchor Setting, default is (0, 0), the top left corner
+        // (0.5, 0.5) is the center, (1, 1) is the bottom right corner
+        cloud.anchor.set(0, 1);
+
+        // cloud.png is a verticle gradient from transparent to opaque
+        // Tinting it the sky color makes it seem as objects fade as the pass the bottom bound
+        cloud.tint = gameOptions.skyColor;
+        // Add the cloud to overlayGroup
+        this.overlayGroup.add(cloud);
+
+        // Adding Bitmap Text takes 5 arguments:
+        // the x & y coordinates
+        // font's key name
+        // what the string says
+        // font size
         var highScoreText = game.add.bitmapText(game.width - 10, game.height - 10, "font", "Best Score: " + this.savedData.score.toString(), 30);
-
-        // bitmap texts can also have their registration point set
+        // Set the bitmap text's registration points
         highScoreText.anchor.set(1, 1);
-
-        // scoreText is also added to overlayGroup
+        // Add scoreText to overlayGroup
         this.overlayGroup.add(highScoreText);
 
-        // same concept applies to the bitmap text which shows the amount of coins collected
+        // Do the same for the coins collected Text
         var coinsText = game.add.bitmapText(game.width / 2, game.height - 10, "font", "Coins: " + this.savedData.coins.toString(), 30);
         coinsText.anchor.set(0.5, 1);
         this.overlayGroup.add(coinsText);
 
-        /*  same concept applies to the bitmap text which shows the score.
-            this time the bitmapText is bound to a property than to a local variable
-            because we are goint to update it inside other methods  */
+        // Do the same for score text
         this.scoreText = game.add.bitmapText(10, game.height - 10, "font", "Score: 0", 30);
         this.scoreText.anchor.set(0, 1);
         this.overlayGroup.add(this.scoreText);
     },
 
-    // method to create the menu
+    // Create the menu
     createMenu: function(){
 
-        // adding "tap" image, setting its registration point and adding it to "menuGroup" group
+        // add Pikachu image, set its registration point and add it to "menuGroup" group
         var tap = game.add.sprite(game.width / 2, game.height - 150, "tap");
         tap.anchor.set(0.5);
+        tap.width = 150;
+        tap.height = 150;
         this.menuGroup.add(tap);
-
-        /*  let's meet the tween.
-            a wween allows you to alter one or more properties of a target object over a defined period of time.
-            this can be used for things such as alpha fading sprites, scaling them or give them a motion
-            tapTween is a new tween applied to "tap" image.
-            it brings the alpha to zero as you can see into the first argument of "to" method
-            200 is the amount of milliseconds
-            Phaser.Easing.Cubic.InOut is the easing
-            true (the first one) means the tween starts immediately
-            0 is the delay in milliseconds before tween starts (no delay in this case)
-            -1 is the amount of times the tween must be played. -1 means infinite times
-            true (the second one) sets the yoyo effect, it means the tween will be played forward and backward  */
+        // Tweens alter properties of a target over a period of time (fading, scaling, motion, etc)
+        // Set the Alpha(transparency) to 0
+        // Phaser.Easing.Cubic.InOut is easing, true starts immediately, 0 means no delay
+        // -1(infinitely) is how many times it plays, true is for the yoyo effect, plays forward and backwards in one loop
         var tapTween = game.add.tween(tap).to({
             alpha: 0
         }, 200, Phaser.Easing.Cubic.InOut, true, 0, -1, true);
 
-        // adding a bitmap text with in-game instructions ("tap to jump"), setting its anchor and add it to menuGroup group
+        // Add bitmap text with "tap to jump", set its anchor and add it to menuGroup
         var tapText = game.add.bitmapText(game.width / 2, tap.y - 120, "font", "tap to jump", 45);
         tapText.anchor.set(0.5);
         this.menuGroup.add(tapText);
 
-        // adding a bitmap text with game title, setting its anchor and add it to menuGroup group
-        var titleText = game.add.bitmapText(game.width / 2, tap.y - 200, "font", "LADDERZ", 90);
+        // Add bitmap text with game title, set its anchor and add it to menuGroup
+        var titleText = game.add.bitmapText(game.width / 2, tap.y - 200, "font2", "POKeCLIMB", 70);
         titleText.anchor.set(0.5);
         this.menuGroup.add(titleText);
     },
 
-    // method to define the tween which scrolls the level as the player climbs the ladders
+    // Define the tween which scrolls the level as the player climbs the vines
     defineTweens: function(){
 
-        // we keep a counter to reming us how many tweens we have to go, starting at zero
+        // Keep a counter to see how many tweens are left to do
         this.tweensToGo = 0;
 
-        /*  this is a simple tween, simpler than the one seen in "createMenu" method, where we scroll down
-            the entire gameGroup by gameOptions.floorGap pixels actually moving it down by a floor
-            in 500 milliseconds  */
+        // Tween to move the entire gameGroup down by floorGap pixels
         this.scrollTween = game.add.tween(this.gameGroup);
         this.scrollTween.to({
             y: gameOptions.floorGap
         }, 500, Phaser.Easing.Cubic.Out);
 
-        // this is another tween feature: we can add a callback function to be executed when the tween is complete
+        // Callback function for when the tween is completed
         this.scrollTween.onComplete.add(function(){
 
-            /*  before we start looking at the code, let me clarify something about this endless runner.
-                actually the player is not climbing, but it's the whole level to scroll down and resposition
-                in the same original y coordinate.
-                this way the player has the feeling as if the hero was climbing the tower while it's the whole
-                world to move down and reposition, just like when you walk up in an escalator moving down at
-                your same speed.
-
-                that said, we reposition gameGroup to its initial position   */
+            // Reposition the gameGroup's initial position
+            // The player isn't actually moving up, everything else is moving down
             this.gameGroup.y = 0;
 
-            // now we loop through all gameGroup children executing the function having "item" argument = the child of the group
+            // Loop through all gameGroup children executing the function having "item" or child argument
             this.gameGroup.forEach(function(item){
 
-                /*  you can see from "defineGroups" method that gameGroup children are all groups.
-                    the lenght of a group is the number of its children, so we are basically checking
-                    if the group has children, so if its length is greater than zero...  */
+                // Check if the children groups have children (subItems)
                 if(item.length > 0){
 
                     // we loop through all the children of the child. Now "subItem" is the child of the child
@@ -584,6 +444,11 @@ playGame.prototype = {
                                     // removing the ladder
                                     this.killLadder(subItem);
                                     break;
+
+                                case "bulbasaur":
+                                    this.killBulbasaur(subItem);
+                                    break;
+
                                 case "coin":
 
                                     // removing the coin
@@ -811,15 +676,19 @@ playGame.prototype = {
 
             // if we find a floor in the pool, let's remove it from the pool
             var ladder = this.ladderPool.pop();
+            var bulbasaur = this.bulbasaurPool.pop();
 
             // placing the ladder at horizontal ladderXPosition
             ladder.x = ladderXPosition;
+            bulbasaur.x = ladderXPosition;
 
             // placing the ladder at the vertical highest floor position allowed in the game
             ladder.y = this.highestFloorY;
+            bulbasaur.y = this.highestFloorY;
 
             // make the ladder revive, setting its "alive", "exists" and "visible" properties all set to true
             ladder.revive();
+            bulbasaur.revive();
         }
 
         // this is the case we did not find any ladder in the pool
@@ -827,18 +696,26 @@ playGame.prototype = {
 
             // adding the ladder sprite
             var ladder = game.add.sprite(ladderXPosition, this.highestFloorY, "ladder");
+            var bulbasaur = game.add.sprite(ladderXPosition, this.highestFloorY, "bulbasaur");
+            var bulbasaurIdle = bulbasaur.animations.add("idle");
+
+            bulbasaur.animations.play("idle", 2, true);
+            bulbasaur.anchor.set(0.5, 1);
 
             // adding ladder to ladder group
             this.ladderGroup.add(ladder);
+            this.bulbasaurGroup.add(bulbasaur);
 
             // changing ladder registration point to horizontal:center and vertical:top
             ladder.anchor.set(0.5, 0);
 
             // enabling ARCADE physics to the floor
             game.physics.enable(ladder, Phaser.Physics.ARCADE);
+            game.physics.enable(bulbasaur, Phaser.Physics.ARCADE);
 
             // setting ladder's body as immovable
             ladder.body.immovable = true;
+            bulbasaur.body.immovable = true;
         }
 
         /*  placing a ladder also means we have to prevent obstacles to be placed too close to it,
@@ -944,6 +821,10 @@ playGame.prototype = {
 
             // adding the monster sprite
             var monster = game.add.sprite(monsterX, monsterY, "monster");
+            var monsterWalk = monster.animations.add("walk", [0, 1]);
+            var monsterDead = monster.animations.add("dead", [2]);
+
+            monster.animations.play("walk", 2, true);
 
             // setting monster registration point to center both horizontally and vertically
             monster.anchor.set(0.5);
@@ -959,7 +840,7 @@ playGame.prototype = {
             monster.body.collideWorldBounds = true;
 
             // setting the velocity of the monster, in pixels per second.
-            monster.body.velocity.x = gameOptions.monsterSpeed;
+            monster.body.velocity.x = -gameOptions.monsterSpeed;
 
             /*  we need to detect when the monster collides with the world bounds.
                 this is why we are creating a Phaser signal which is basically a trigger which
@@ -979,7 +860,7 @@ playGame.prototype = {
                     sprite.body.velocity.x = gameOptions.monsterSpeed;
 
                     // do not horizontally flip the sprite (the original image is with the sprite looking to the right)
-                    sprite.scale.x = 1;
+                    sprite.scale.x = -1;
                 }
 
                 // collision against the right bound of the game
@@ -989,7 +870,7 @@ playGame.prototype = {
                     sprite.body.velocity.x = -gameOptions.monsterSpeed;
 
                     // horizontally flip the sprite (the original image is with the sprite looking to the right)
-                    sprite.scale.x = -1;
+                    sprite.scale.x = 1;
                 }
             });
 
@@ -1028,6 +909,9 @@ playGame.prototype = {
 
             // adding the spiked monster sprite
             var monster = game.add.sprite(monsterX, monsterY, "spikedmonster");
+            var monsterWalk = monster.animations.add("walk", [0, 1]);
+
+            monster.animations.play("walk", 2, true);
 
             // setting spiked monster registration point to center both horizontally and vertically
             monster.anchor.set(0.5);
@@ -1043,7 +927,7 @@ playGame.prototype = {
             monster.body.collideWorldBounds = true;
 
             // setting the velocity of the spiked monster, in pixels per second.
-            monster.body.velocity.x = gameOptions.monsterSpeed;
+            monster.body.velocity.x = -gameOptions.monsterSpeed;
 
             /*  we need to detect when the spiked monster collides with the world bounds.
                 this is why we are creating a Phaser signal which is basically a trigger which
@@ -1063,7 +947,7 @@ playGame.prototype = {
                     sprite.body.velocity.x = gameOptions.monsterSpeed;
 
                     // do not horizontally flip the sprite (the original image is with the sprite looking to the right)
-                    sprite.scale.x = 1;
+                    sprite.scale.x = -1;
                 }
 
                 // collision against the right bound of the game
@@ -1073,7 +957,7 @@ playGame.prototype = {
                     sprite.body.velocity.x = -gameOptions.monsterSpeed;
 
                     // horizontally flip the sprite (the original image is with the sprite looking to the right)
-                    sprite.scale.x = -1;
+                    sprite.scale.x = 1;
                 }
             });
 
@@ -1206,6 +1090,11 @@ playGame.prototype = {
 
                     // adding the spike sprite
                     var spike = game.add.sprite(spikeXPosition, spikeYPosition, "spike");
+                    var spikeRotate = spike.animations.add("rotate");
+
+                    // Adding Animations
+                    // .play("name", framerate, true or false if it loops)
+                    spike.animations.play("rotate", 7, true);
 
                     // changing spike registration point to horizontal:center and vertical:top
                     spike.anchor.set(0.5, 0);
@@ -1282,7 +1171,7 @@ playGame.prototype = {
                         * the name of the animation to be played
                         * the framerate to play the animation at, measured in frames per second
                         * a Boolean value which tells us if the animation should be looped  */
-                    fire.animations.play("burn", 15, true);
+                    fire.animations.play("burn", 6, true);
 
                     // changing fire registration point to horizontal:center and vertical:top
                     fire.anchor.set(0.5, 0);
@@ -1369,13 +1258,13 @@ playGame.prototype = {
             now, the same sprite (the hero) can have more animations, that's why
             there's a second argument which is the array of frames to be used in the animation.
             in this case "walk" animation only takes frames 0 and 1 of the sprite sheet  */
-        this.hero.animations.add("walk", [0, 1]);
+        this.hero.animations.add("walk", [0, 3]);
 
         // following the same concept, "climb" animation uses frames 2 and 3
-        this.hero.animations.add("climb", [2, 3]);
+        this.hero.animations.add("climb", [4, 5]);
 
         // start playing "walk" animation, at 15 frames per second, in loop mode
-        this.hero.animations.play("walk", 15, true);
+        this.hero.animations.play("walk", 6, true);
 
         // adding the hero to game group
         this.gameGroup.add(this.hero);
@@ -1394,7 +1283,7 @@ playGame.prototype = {
         this.hero.body.gravity.y = gameOptions.playerGravity;
 
         // setting the velocity of the hero, in pixels per second
-        this.hero.body.velocity.x = gameOptions.playerSpeed;
+        this.hero.body.velocity.x = -gameOptions.playerSpeed;
 
         /*  we need to detect when the hero collides with the world bounds.
             this is why we are creating a Phaser signal which is basically a trigger which
@@ -1414,7 +1303,7 @@ playGame.prototype = {
                 this.hero.body.velocity.x = gameOptions.playerSpeed;
 
                 // do not horizontally flip the sprite (the original image is with the sprite looking to the right)
-                this.hero.scale.x = 1;
+                this.hero.scale.x = -1;
             }
 
             // collision against the right bound of the game
@@ -1424,7 +1313,7 @@ playGame.prototype = {
                 this.hero.body.velocity.x = -gameOptions.playerSpeed;
 
                  // horizontally flip the sprite (the original image is with the sprite looking to the right)
-                this.hero.scale.x = -1;
+                this.hero.scale.x = 1;
             }
 
             // collision against the bottom bound of the game
@@ -1484,6 +1373,9 @@ playGame.prototype = {
 
         // if it's not game over...
         if(!this.gameOver){
+            this.mountainsBack.tilePosition.x -= 0.05;
+            this.mountainsMid1.tilePosition.x -= 0.3;
+            this.mountainsMid2.tilePosition.x -= 0.75;
 
             // method to fire an arrow
             this.fireArrow();
@@ -1587,7 +1479,7 @@ playGame.prototype = {
                     this.isClimbing = true;
 
                     // playing "climb" animation, at 15 frames per second in loop mode
-                    this.hero.animations.play("climb", 15, true);
+                    this.hero.animations.play("climb", 6, true);
 
 
                     /*  there's something to say about these lines, as they are very important to make
@@ -1622,7 +1514,7 @@ playGame.prototype = {
                 this.hero.body.gravity.y = gameOptions.playerGravity;
 
                 // restoring player horizontal speed
-                this.hero.body.velocity.x = gameOptions.playerSpeed * this.hero.scale.x;
+                this.hero.body.velocity.x = -gameOptions.playerSpeed * this.hero.scale.x;
 
                 // setting player vertical speed to zero - no more climbing
                 this.hero.body.velocity.y = 0;
@@ -1798,6 +1690,11 @@ playGame.prototype = {
 
         // inserting ladder sprite into ladder pool by adding it into ladderPool array
         this.ladderPool.push(ladder);
+    },
+
+    killBulbasaur: function(bulbasaur){
+      bulbasaur.kill();
+      this.bulbasaurPool.push(bulbasaur);
     },
 
     // method to remove a coin
