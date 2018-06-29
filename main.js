@@ -37,7 +37,7 @@ var gameOptions = {
     skyColor: 0x89d7fb,
 
     // Prevents spikes from spawning too close to each other or to the vines
-    safeRadius: 185,
+    safeRadius: 190,
 
     // Local storage name for high scores and coins, resets with string change
     localStorageName: "ladderzGame",
